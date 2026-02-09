@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-09 (3차)
+- **Last Updated:** 2026-02-09 (4차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -103,6 +103,44 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+### 2026-02-09 (4차) - PackageInstaller 구현 및 Phase 0.2 패키지 설치·다국어 데이터 생성 자동화
+**[목표]** Phase 0.2 작업을 위해 필수 Unity 패키지를 설치하고, 다국어 기초 데이터(JSON)를 생성하는 에디터 툴 `PackageInstaller`를 구현하여, 패키지 설치 요청과 다국어 JSON 파일 생성을 자동화함.
+
+#### 구현 내용
+- **PackageInstaller.cs 생성** (`Assets/Editor/PackageInstaller.cs`):
+  - Unity 에디터 메뉴: `Tools > J_O_T > Install Packages & Data`로 실행 가능.
+  - **기능 1 (Package Install)**: `UnityEditor.PackageManager.Client.Add`를 사용하여 다음 패키지 설치 요청:
+    - `com.unity.vectorgraphics` (SVG 지원) — 기획서 §5 Assets: Vector 필수.
+    - `com.unity.localization` (다국어 지원) — 기획서 §5 Tech Stack 명시.
+  - 패키지 설치는 비동기로 동작하므로, 설치 요청을 보냈음을 로그로 명확히 알림.
+  - 패키지 설치 상태는 Package Manager 창에서 확인 가능.
+  - **기능 2 (Data Creation)**: `Assets/_Project/Resources/Localization` 폴더(없으면 생성)에 `en.json`, `ko.json` 파일 생성:
+    - 기존 JSON 파일이 존재할 경우 덮어쓰지 않도록 체크 로직 포함.
+    - UTF-8 인코딩 사용 (`System.IO` 및 `UTF-8` 인코딩).
+    - 초기 JSON 내용 (기획서 기반):
+      - **en.json**: `msg_ready`, `msg_tap_to_save`, `msg_see_you_tomorrow`, `msg_saved`, `label_streak`, `label_points` 키 포함.
+      - **ko.json**: 동일 키에 대한 한국어 번역 포함.
+  - 설치 및 생성 완료 후 "Packages Installing... Check Package Manager & JSON Files Created!" 로그 출력.
+
+#### Dev Action (코드 생성)
+- **`Assets/Editor/PackageInstaller.cs`**: 패키지 설치 및 다국어 데이터 생성 에디터 툴 신규 생성.
+  - `InstallPackagesAndData()`: 메인 메뉴 실행 메서드.
+  - `InstallPackages()`: Unity Package Manager를 통한 패키지 설치 요청 로직.
+  - `CreateLocalizationData()`: Localization 폴더 생성 및 JSON 파일 생성 로직.
+  - `CreateJsonFile()`: 기존 파일 체크 후 JSON 파일 생성 (덮어쓰기 방지).
+  - `GetEnglishJsonContent()`, `GetKoreanJsonContent()`: 기획서 기반 JSON 내용 반환.
+
+#### 문서 업데이트
+- **`md/To_do.md`**: Phase 0.2 항목 완료 표시, PackageInstaller 관련 완료 항목 추가.
+- **`md/Architecture.md`**: 2.3 Editor Tools 섹션에 PackageInstaller 설명 추가.
+- **`md/Tree.md`**: Editor 폴더에 `PackageInstaller.cs` 추가 반영.
+- **`md/Work_Process.md`**: 본 4차 개발 기록을 최상단에 추가, Last Updated 4차로 갱신.
+
+#### Current Status
+- PackageInstaller가 Unity 에디터에서 실행 가능한 상태로 구현 완료. `Tools > J_O_T > Install Packages & Data` 메뉴를 통해 필수 패키지 설치 요청과 다국어 JSON 파일 생성을 한 번에 수행할 수 있음. 패키지 설치는 비동기로 진행되며 Package Manager 창에서 확인 가능. JSON 파일은 기존 파일 덮어쓰기 방지 로직으로 안전하게 생성됨. Phase 0.2의 패키지 설치 및 Localization 세팅 항목이 완료됨. 모든 문서가 현재 구현 상태와 동기화됨.
+
+---
 
 ### 2026-02-09 (3차) - ProjectSetupTool 구현 및 프로젝트 초기화 자동화
 **[목표]** 프로젝트 초기 설정을 자동화하는 에디터 툴 `ProjectSetupTool`을 구현하여, 핵심 폴더 구조와 매니저 스크립트를 자동 생성하도록 함.

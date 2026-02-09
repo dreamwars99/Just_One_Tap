@@ -55,14 +55,17 @@
 
 ## 0.2 Asset Pipeline (패키지·에셋)
 
-- [ ] **Package Manager 설치**
-    - [ ] **Vector Graphics:** Unity Registry에서 설치 (SVG 임포트용). — 기획서 §5 Assets: Vector 필수.
-    - [ ] **DOTween:** Asset Store 또는 Package Manager (애니메이션·UI 연출).
+- [x] **Package Manager 설치**
+    - [x] **PackageInstaller 에디터 툴 구현** (`Assets/Editor/PackageInstaller.cs`) — `Tools > J_O_T > Install Packages & Data` 메뉴로 실행 가능.
+    - [x] **Vector Graphics:** Unity Package Manager를 통한 설치 요청 기능 구현 (`com.unity.vectorgraphics`). — 기획서 §5 Assets: Vector 필수.
+    - [x] **Localization:** Unity Package Manager를 통한 설치 요청 기능 구현 (`com.unity.localization`).
+    - [ ] **DOTween:** Asset Store 또는 Package Manager (애니메이션·UI 연출) — 이후 단계에서 설치 예정.
     - [ ] **Firebase:** Auth, Firestore SDK 패키지 추가 (초기 설정은 이후 단계에서).
-- [ ] **Localization 세팅**
-    - [ ] Unity Localization 패키지 또는 I2 Localization 중 하나 설치.
-    - [ ] Default Locale: **English** 설정.
-    - [ ] `_Project/Resources/Localization`에 `en.json`(또는 해당 패키지 형식) 생성 — 키 예: `msg_ready`, `msg_tap_to_save`, `msg_see_you_tomorrow`.
+- [x] **Localization 세팅**
+    - [x] Unity Localization 패키지 설치 요청 기능 구현 완료.
+    - [x] `_Project/Resources/Localization`에 `en.json`, `ko.json` 파일 생성 기능 구현 완료.
+    - [x] 초기 JSON 키 포함: `msg_ready`, `msg_tap_to_save`, `msg_see_you_tomorrow`, `msg_saved`, `label_streak`, `label_points`.
+    - [ ] Default Locale: **English** 설정 (Unity Localization 패키지 설치 후 설정 예정).
 - [ ] **리소스 임포트 (Figma/에셋)**
     - [ ] Figma에서 아이콘(SVG) 추출 → `_Project/Art/Icons` 임포트. (기획서 §2.2 Cute Isometric Icons Pack 등)
     - [ ] 폰트: Jua 또는 프로젝트 지정 폰트 → TextMeshPro SDF 생성 → `_Project/Art/Fonts` 또는 TMP 기본 경로.
@@ -263,6 +266,12 @@
 # ✅ Completed (완료된 작업)
 
 ### 2026-02-09
+- **PackageInstaller 구현 완료**
+  - `Assets/Editor/PackageInstaller.cs` 생성 완료.
+  - `Tools > J_O_T > Install Packages & Data` 메뉴로 패키지 설치 및 다국어 데이터 생성 기능 제공.
+  - Unity Package Manager를 통한 패키지 설치 요청 기능 구현 (`com.unity.vectorgraphics`, `com.unity.localization`).
+  - `Assets/_Project/Resources/Localization` 폴더에 `en.json`, `ko.json` 파일 자동 생성 기능 구현.
+  - 기존 파일 덮어쓰기 방지 로직 포함, UTF-8 인코딩 사용.
 - **ProjectSetupTool 구현 완료**
   - `Assets/Editor/ProjectSetupTool.cs` 생성 완료.
   - `Tools > J_O_T > Initialize Project` 메뉴로 프로젝트 초기화 기능 제공.
