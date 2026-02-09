@@ -40,9 +40,10 @@
 - [ ] **Unity 프로젝트 생성**
     - [ ] Unity Hub → New Project → 2D (URP) 템플릿.
     - [ ] Project Name: Just_One_Tap (또는 동일 루트).
-- [ ] **해상도·플랫폼 설정**
-    - [ ] Player Settings: Resolution 1080×1920 (Portrait) — Reference Resolution으로 사용.
-    - [ ] Canvas: Scale With Screen Size, Match (Width/Height) 비율 프로젝트 규칙에 맞게 설정.
+- [x] **해상도·플랫폼 설정**
+    - [x] **ProjectSetupTool에 Player Settings 자동 적용 기능 추가** (`Tools > J_O_T > Apply Project Settings` 메뉴).
+    - [x] Player Settings: Identity(Company, Product, Package), Resolution(Portrait 고정), Android 설정(MinSDK 24, IL2CPP, .NET Standard, ARM64+ARMv7) 자동 적용 기능 구현 완료.
+    - [ ] Canvas: Scale With Screen Size, Match (Width/Height) 비율 프로젝트 규칙에 맞게 설정 (씬 생성 시 설정 예정).
 - [ ] **Git 및 보안**
     - [ ] `git init` (또는 기존 저장소 연결).
     - [ ] `.gitignore` 적용 — `google-services.json`, `GoogleService-Info.plist`, API 키 등 제외 확인.
@@ -276,11 +277,14 @@
 - **Firebase SDK 수동 임포트 완료**
   - Firebase SDK 5종 수동 임포트 완료: FirebaseAuth, FirebaseFirestore, FirebaseAnalytics, FirebaseCrashlytics, FirebaseMessaging.
   - Android Auto-resolution 활성화, API Compatibility Level `.NET Standard 2.1` 유지.
-- **ProjectSetupTool 구현 완료**
+- **ProjectSetupTool 구현 및 Player Settings 자동화 완료**
   - `Assets/Editor/ProjectSetupTool.cs` 생성 완료.
   - `Tools > J_O_T > Initialize Project` 메뉴로 프로젝트 초기화 기능 제공.
+  - `Tools > J_O_T > Apply Project Settings` 메뉴로 Player Settings 자동 적용 기능 제공.
   - Tree.md 구조에 맞는 폴더 구조 자동 생성 기능 구현.
   - 5개 핵심 매니저 스크립트(GameManager, RoutineManager, DataManager, LocalizationManager, AuthManager) 템플릿 자동 생성 기능 구현.
+  - Player Settings 자동 적용 기능: Identity(Company=J_O_T Studio, Product=Just One Tap, Package=com.jotstudio.justonetap, Version=0.1.0), Resolution(Portrait 고정, Auto-Rotate 비활성화), Android(MinSDK=24, TargetSDK=Auto, IL2CPP, .NET Standard, ARM64+ARMv7), Accelerometer Frequency=60Hz.
+  - Unity 2022.3 LTS API 호환성 문제 해결 (SetApplicationIdentifier, SetScriptingBackend, SetApiCompatibilityLevel 메서드 사용).
   - 모든 스크립트는 싱글톤 패턴, UTF-8 인코딩, 한국어 주석 적용.
 
 ---

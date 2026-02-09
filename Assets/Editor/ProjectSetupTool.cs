@@ -27,6 +27,27 @@ namespace J_O_T.Editor
             AssetDatabase.Refresh();
         }
 
+        [MenuItem("Tools/J_O_T/Apply Project Settings")]
+        public static void ApplyProjectSettings()
+        {
+            Debug.Log("[ProjectSetupTool] Player Settings 적용을 시작합니다...");
+
+            // Identity 설정
+            ApplyIdentitySettings();
+
+            // Resolution 설정
+            ApplyResolutionSettings();
+
+            // Android 설정
+            ApplyAndroidSettings();
+
+            // 기타 설정
+            ApplyOtherSettings();
+
+            Debug.Log("✅ Player Settings Applied Successfully! (Target: Android)");
+            Debug.Log("⚠️ Please ensure you have switched the platform to Android in 'Build Settings'.");
+        }
+
         /// <summary>
         /// Tree.md에 정의된 폴더 구조를 생성합니다.
         /// </summary>
@@ -421,6 +442,67 @@ namespace J_O_T.Core
         }
     }
 }";
+        }
+
+        /// <summary>
+        /// Identity 설정을 적용합니다.
+        /// </summary>
+        private static void ApplyIdentitySettings()
+        {
+            PlayerSettings.companyName = "J_O_T Studio";
+            PlayerSettings.productName = "Just One Tap";
+            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.Android.bundleVersionCode = 1;
+            // Android Package Name은 SetApplicationIdentifier 메서드 사용
+            PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.jotstudio.justonetap");
+            Debug.Log("[ProjectSetupTool] Identity 설정 적용 완료: Company=J_O_T Studio, Product=Just One Tap, Package=com.jotstudio.justonetap, Version=0.1.0");
+        }
+
+        /// <summary>
+        /// Resolution 설정을 적용합니다.
+        /// </summary>
+        private static void ApplyResolutionSettings()
+        {
+            // Default Orientation을 Portrait로 설정
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+
+            // Auto-Rotate 모두 끔
+            PlayerSettings.allowedAutorotateToPortrait = false;
+            PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+            PlayerSettings.allowedAutorotateToLandscapeRight = false;
+            PlayerSettings.allowedAutorotateToLandscapeLeft = false;
+
+            Debug.Log("[ProjectSetupTool] Resolution 설정 적용 완료: Portrait 고정, Auto-Rotate 비활성화");
+        }
+
+        /// <summary>
+        /// Android 설정을 적용합니다.
+        /// </summary>
+        private static void ApplyAndroidSettings()
+        {
+            // API Level (Android 7.0 'Nougat' = API Level 24)
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24;
+            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
+
+            // Configuration
+            PlayerSettings.SetScriptingBackend(BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7;
+            PlayerSettings.SetApiCompatibilityLevel(BuildTargetGroup.Android, ApiCompatibilityLevel.NET_Standard);
+
+            // Keystore (Debug)
+            PlayerSettings.Android.useCustomKeystore = false;
+
+            Debug.Log("[ProjectSetupTool] Android 설정 적용 완료: MinSDK=24, TargetSDK=Auto, IL2CPP, .NET Standard, ARM64+ARMv7");
+        }
+
+        /// <summary>
+        /// 기타 설정을 적용합니다.
+        /// </summary>
+        private static void ApplyOtherSettings()
+        {
+            // Accelerometer Frequency: 60Hz
+            PlayerSettings.accelerometerFrequency = 60;
+            Debug.Log("[ProjectSetupTool] 기타 설정 적용 완료: Accelerometer Frequency=60Hz");
         }
     }
 }

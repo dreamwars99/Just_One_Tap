@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-09 (5차)
+- **Last Updated:** 2026-02-09 (6차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -34,7 +34,8 @@ Unity Registry 패키지는 `Window > Package Manager`를 통해 설치하며, �
 ### 1.2. Project Settings
 - **Resolution:** 1080 x 1920 (Portrait).
 - **Scripting Backend:** IL2CPP (Android Build 필수).
-- **Api Compatibility:** .NET Standard 2.1.
+- **Api Compatibility:** .NET Standard.
+- **Player Settings 자동 적용:** `Tools > J_O_T > Apply Project Settings` 메뉴를 통해 모든 Player Settings를 자동으로 적용 가능.
 
 ## 📂 2. Project Directory Structure (폴더 구조)
 모든 커스텀 에셋은 `Assets/_Project` 하위에 격리됩니다.
@@ -113,6 +114,57 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+### 2026-02-09 (6차) - ProjectSetupTool에 Player Settings 자동 적용 기능 추가 및 API 호환성 문제 해결
+**[목표]** 프로젝트 초기 설정을 완벽하게 자동화하기 위해, `ProjectSetupTool`에 Player Settings(해상도, 안드로이드 빌드 설정 등)를 적용하는 기능을 추가하고, Unity 2022.3 LTS 버전에 맞는 올바른 API로 수정하여 컴파일 에러를 해결함.
+
+#### 구현 내용
+- **ProjectSetupTool.cs 수정** (`Assets/Editor/ProjectSetupTool.cs`):
+  - 새로운 메뉴 항목 추가: `Tools > J_O_T > Apply Project Settings`.
+  - `ApplyProjectSettings()` 메서드 구현 및 메뉴 연결.
+  - **Identity 설정 자동 적용**:
+    - Company Name: "J_O_T Studio"
+    - Product Name: "Just One Tap"
+    - Package Name (Android): "com.jotstudio.justonetap" (`PlayerSettings.SetApplicationIdentifier` 메서드 사용)
+    - Version: "0.1.0"
+    - Bundle Version Code: 1
+  - **Resolution 설정 자동 적용**:
+    - Default Orientation: `UIOrientation.Portrait` (세로 고정)
+    - Allowed Auto-Rotate: 모두 비활성화 (Portrait, Portrait Upside Down, Landscape Right, Landscape Left)
+  - **Android 설정 자동 적용**:
+    - Minimal API Level: Android 7.0 (Nougat) - SDK 24 (`AndroidSdkVersions.AndroidApiLevel24`)
+    - Target API Level: Automatic (`AndroidSdkVersions.AndroidApiLevelAuto`)
+    - Scripting Backend: `IL2CPP` (`PlayerSettings.SetScriptingBackend` 메서드 사용)
+    - Api Compatibility Level: `.NET Standard` (`PlayerSettings.SetApiCompatibilityLevel` 메서드 사용)
+    - Target Architectures: ARM64 + ARMv7 (비트 연산 사용)
+    - Custom Keystore: false
+  - **기타 설정 자동 적용**:
+    - Accelerometer Frequency: 60Hz
+  - 설정 적용 완료 후 "✅ Player Settings Applied Successfully! (Target: Android)" 및 플랫폼 변경 안내 로그 출력.
+  - Unity 2022.3 LTS API 호환성 문제 해결:
+    - `PlayerSettings.applicationIdentifier` 직접 할당 대신 `PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, ...)` 메서드 사용.
+    - `PlayerSettings.SetScriptingBackend`, `PlayerSettings.SetApiCompatibilityLevel` 메서드 사용으로 API 호환성 보장.
+    - `PlayerSettings.Android.targetArchitectures`에 비트 연산(`AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7`) 사용.
+
+#### Dev Action (코드 수정)
+- **`Assets/Editor/ProjectSetupTool.cs`**: Player Settings 자동 적용 기능 추가 및 API 호환성 문제 수정.
+  - `ApplyProjectSettings()`: 메인 메뉴 실행 메서드 추가.
+  - `ApplyIdentitySettings()`: Identity 설정 적용 메서드 (SetApplicationIdentifier 사용).
+  - `ApplyResolutionSettings()`: Resolution 설정 적용 메서드.
+  - `ApplyAndroidSettings()`: Android 설정 적용 메서드 (SetScriptingBackend, SetApiCompatibilityLevel 사용).
+  - `ApplyOtherSettings()`: 기타 설정 적용 메서드.
+  - 기존 `InitializeProject()` 기능 유지 (폴더 구조 및 매니저 스크립트 생성).
+
+#### 문서 업데이트
+- **`md/To_do.md`**: Phase 0.1의 해상도·플랫폼 설정 항목 완료 표시, ProjectSetupTool의 Player Settings 기능 완료 항목 추가.
+- **`md/Architecture.md`**: 2.3 Editor Tools 섹션에 ProjectSetupTool의 Apply Project Settings 기능 설명 추가.
+- **`md/Tree.md`**: 변경 없음 (이미 ProjectSetupTool.cs 반영됨).
+- **`md/Work_Process.md`**: 본 6차 개발 기록을 최상단에 추가, Last Updated 6차로 갱신, Project Settings 섹션 업데이트.
+
+#### Current Status
+- ProjectSetupTool에 Player Settings 자동 적용 기능이 추가되어 Unity 에디터에서 `Tools > J_O_T > Apply Project Settings` 메뉴를 통해 모든 Player Settings를 한 번에 적용할 수 있음. Unity 2022.3 LTS 버전에 맞는 올바른 API를 사용하여 컴파일 에러 없이 정상 작동함. Identity, Resolution, Android 설정이 모두 자동으로 적용되며, 플랫폼 변경은 사용자가 Build Settings에서 수동으로 수행하도록 안내됨. Phase 0.1의 해상도·플랫폼 설정 항목이 완료됨. 모든 문서가 현재 구현 상태와 동기화됨.
+
+---
 
 ### 2026-02-09 (5차) - PackageInstaller 구현 및 Unity 패키지 수동 설치, Firebase SDK 수동 임포트
 **[목표]** Phase 0.2 작업을 위해 필수 Unity 패키지 설치 및 다국어 데이터 생성 자동화 툴 구현, 그리고 Phase 0.2(데이터/분석) 및 Phase 3(소셜/알림) 구현을 위해 필수 Firebase 패키지를 수동으로 임포트하고, 프로젝트 의존성을 설정함.

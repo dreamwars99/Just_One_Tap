@@ -62,6 +62,8 @@ sequenceDiagram
     * `Tools > J_O_T > Initialize Project` 메뉴로 실행 가능.
     * Tree.md 구조에 맞는 폴더 구조 자동 생성.
     * 5개 핵심 매니저 스크립트 템플릿 자동 생성.
+    * `Tools > J_O_T > Apply Project Settings` 메뉴로 Player Settings 자동 적용 기능 제공.
+    * Player Settings 자동 적용: Identity(Company, Product, Package, Version), Resolution(Portrait 고정), Android(MinSDK 24, IL2CPP, .NET Standard, ARM64+ARMv7), Accelerometer Frequency 60Hz.
 * **`PackageInstaller`** (`Assets/Editor/PackageInstaller.cs`):
     * Unity 필수 패키지 설치 및 다국어 기초 데이터(JSON) 생성을 위한 에디터 툴.
     * `Tools > J_O_T > Install Packages & Data` 메뉴로 실행 가능.
