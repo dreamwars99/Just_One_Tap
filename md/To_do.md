@@ -46,9 +46,10 @@
 - [ ] **Git 및 보안**
     - [ ] `git init` (또는 기존 저장소 연결).
     - [ ] `.gitignore` 적용 — `google-services.json`, `GoogleService-Info.plist`, API 키 등 제외 확인.
-- [ ] **폴더 구조**
-    - [ ] `Tree.md` 구조대로 `Assets/_Project` 하위 생성: `Art/Icons`, `Art/UI`, `Art/Fonts`, `Resources/Localization`, `Scripts/Core`, `Scripts/UI`, `Scripts/Utils`, `Scenes`, `Prefabs`.
-    - [ ] `Assets/Editor` 폴더 생성 (UISetupTool 배치용).
+- [x] **폴더 구조 및 프로젝트 초기화 툴**
+    - [x] `ProjectSetupTool.cs` 생성 (`Assets/Editor/ProjectSetupTool.cs`) — `Tools > J_O_T > Initialize Project` 메뉴로 실행 가능.
+    - [x] `Tree.md` 구조대로 `Assets/_Project` 하위 폴더 자동 생성 기능 구현: `Art/Icons`, `Art/UI`, `Art/Fonts`, `Resources/Localization`, `Scripts/Core`, `Scripts/UI`, `Scripts/Utils`, `Scenes`, `Prefabs`.
+    - [x] `Assets/Editor` 폴더에 `ProjectSetupTool.cs` 배치 완료.
 
 ---
 
@@ -70,12 +71,14 @@
 
 ## 0.3 Base Architecture (뼈대)
 
-- [ ] **Core 매니저 스크립트 생성** — Architecture §2.1 기준.
-    - [ ] `GameManager.cs` — Singleton, DontDestroyOnLoad, 앱 상태(Intro/Auth/Main) 관리.
-    - [ ] `LocalizationManager.cs` — 싱글톤, 시스템 언어 감지, GetString(key) 스텁. (실제 로딩은 Localization 패키지 연동 후)
-    - [ ] `RoutineManager.cs` — 빈 껍데기. public bool IsTodayDone(), void TryRoutineAction() 시그니처만 정의.
-    - [ ] `DataManager.cs` — 싱글톤, Save/Load 스텁 (로컬 JSON 경로만 정의해 두어도 됨).
-    - [ ] `AuthManager.cs` — 싱글톤, 스텁 (Firebase 연동은 Phase 2).
+- [x] **Core 매니저 스크립트 생성** — Architecture §2.1 기준.
+    - [x] `ProjectSetupTool`을 통해 5개 매니저 스크립트 템플릿 자동 생성 기능 구현 완료.
+    - [x] `GameManager.cs` — Singleton, DontDestroyOnLoad, GameState enum (Intro, Main) 포함 템플릿 생성.
+    - [x] `LocalizationManager.cs` — 싱글톤, SetLanguage(string langCode) 메서드 스텁 포함 템플릿 생성.
+    - [x] `RoutineManager.cs` — 싱글톤, IsTodayDone(), TryRoutineAction() 메서드 스텁 포함 템플릿 생성.
+    - [x] `DataManager.cs` — 싱글톤, Save(), Load() 메서드 스텁 포함 템플릿 생성.
+    - [x] `AuthManager.cs` — 싱글톤, Login(), Logout() 메서드 스텁 포함 템플릿 생성.
+    - [ ] Unity 에디터에서 `Tools > J_O_T > Initialize Project` 실행하여 실제 스크립트 생성 확인.
 - [ ] **씬 및 빌드**
     - [ ] `Intro.unity` 씬 생성 — 진입점(온보딩용).
     - [ ] `Main.unity` 씬 생성 — 메인 루틴용.
@@ -92,6 +95,7 @@
 - [ ] **UISetupTool 이식**
     - [ ] 기존 프로젝트의 `UISetupTool.cs`를 `Assets/Editor`로 복사 (또는 신규 작성).
     - [ ] 메뉴 항목 예: `Tools > Just One Tap > Setup UI` (또는 프로젝트 규칙에 맞게).
+    - [x] `ProjectSetupTool.cs`가 `Assets/Editor`에 배치되어 프로젝트 초기화 기능 제공 중.
 - [ ] **계층 구조 반영** — 기획서 §3.2 Main Screen, CURSOR_GUIDELINES 계층.
     - [ ] `SafeArea_Container` 하위에 `Panel_Intro`, `Panel_Auth`, `Panel_Main` 생성.
     - [ ] `Panel_Main` 하위: `Top_Bar`(국기, Streak, Points), `Center_Area`(The Button), `Bottom_Nav_Bar`(Ranking, Home, Profile).
@@ -258,7 +262,13 @@
 
 # ✅ Completed (완료된 작업)
 
-- (없음 — 신규 프로젝트. 완료 시 위 체크 후 여기로 이동하거나 "Completed" 하위에 날짜·항목 기록)
+### 2026-02-09
+- **ProjectSetupTool 구현 완료**
+  - `Assets/Editor/ProjectSetupTool.cs` 생성 완료.
+  - `Tools > J_O_T > Initialize Project` 메뉴로 프로젝트 초기화 기능 제공.
+  - Tree.md 구조에 맞는 폴더 구조 자동 생성 기능 구현.
+  - 5개 핵심 매니저 스크립트(GameManager, RoutineManager, DataManager, LocalizationManager, AuthManager) 템플릿 자동 생성 기능 구현.
+  - 모든 스크립트는 싱글톤 패턴, UTF-8 인코딩, 한국어 주석 적용.
 
 ---
 

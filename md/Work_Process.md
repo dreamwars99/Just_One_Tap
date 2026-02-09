@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-09 (2차)
+- **Last Updated:** 2026-02-09 (3차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -65,6 +65,7 @@ Assets/
 │   └── Prefabs/
 │
 ├── Editor/
+│   ├── ProjectSetupTool.cs  # 프로젝트 초기 설정 툴 (폴더 구조 및 매니저 스크립트 자동 생성)
 │   └── UISetupTool.cs       # UI 자동 생성 툴
 │
 └── Plugins/
@@ -102,6 +103,41 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+### 2026-02-09 (3차) - ProjectSetupTool 구현 및 프로젝트 초기화 자동화
+**[목표]** 프로젝트 초기 설정을 자동화하는 에디터 툴 `ProjectSetupTool`을 구현하여, 핵심 폴더 구조와 매니저 스크립트를 자동 생성하도록 함.
+
+#### 구현 내용
+- **ProjectSetupTool.cs 생성** (`Assets/Editor/ProjectSetupTool.cs`):
+  - Unity 에디터 메뉴: `Tools > J_O_T > Initialize Project`로 실행 가능.
+  - Tree.md에 정의된 폴더 구조를 `Assets/_Project/` 하위에 자동 생성.
+    - 생성 폴더: `Art/Icons`, `Art/UI`, `Art/Fonts`, `Resources/Localization`, `Scripts/Core`, `Scripts/UI`, `Scripts/Utils`, `Scenes`, `Prefabs`.
+    - 이미 존재하는 폴더는 건너뛰도록 안전 처리.
+  - 5개 핵심 매니저 스크립트 템플릿 자동 생성 (`Assets/_Project/Scripts/Core/` 경로):
+    - **GameManager.cs**: Singleton 패턴, `DontDestroyOnLoad` 적용, `GameState` enum (Intro, Main) 포함.
+    - **RoutineManager.cs**: Singleton 패턴, `IsTodayDone()`, `TryRoutineAction()` 메서드 스텁 포함.
+    - **DataManager.cs**: Singleton 패턴, `Save()`, `Load()` 메서드 스텁 포함.
+    - **LocalizationManager.cs**: Singleton 패턴, `SetLanguage(string langCode)` 메서드 스텁 포함.
+    - **AuthManager.cs**: Singleton 패턴, `Login()`, `Logout()` 메서드 스텁 포함.
+  - 모든 스크립트는 UTF-8 인코딩으로 생성, 한국어 주석 적용, 영어 변수명/로그 사용.
+  - 완료 시 "J_O_T Project Initialized Successfully!" 로그 출력.
+
+#### Dev Action (코드 생성)
+- **`Assets/Editor/ProjectSetupTool.cs`**: 프로젝트 초기화 에디터 툴 신규 생성.
+  - `CreateFolderStructure()`: Tree.md 구조에 맞는 폴더 자동 생성 로직.
+  - `CreateManagerScripts()`: 5개 매니저 스크립트 템플릿 생성 로직.
+  - 각 매니저별 템플릿 생성 메서드 구현 (GenerateGameManagerTemplate, GenerateRoutineManagerTemplate 등).
+
+#### 문서 업데이트
+- **`md/To_do.md`**: Phase 0.1 및 0.3 항목 일부 완료 표시, ProjectSetupTool 관련 완료 항목 추가.
+- **`md/Architecture.md`**: 2.3 Editor Tools 섹션 추가, ProjectSetupTool 설명 추가.
+- **`md/Tree.md`**: Editor 폴더에 `ProjectSetupTool.cs` 추가 반영.
+- **`md/Work_Process.md`**: 본 3차 개발 기록을 최상단에 추가, Last Updated 3차로 갱신.
+
+#### Current Status
+- ProjectSetupTool이 Unity 에디터에서 실행 가능한 상태로 구현 완료. `Tools > J_O_T > Initialize Project` 메뉴를 통해 프로젝트 초기 설정을 한 번에 수행할 수 있음. 폴더 구조와 매니저 스크립트 템플릿이 자동 생성되어 개발 시작 시 수동 작업을 최소화할 수 있음. 모든 문서가 현재 구현 상태와 동기화됨.
+
+---
 
 ### 2026-02-09 (2차) - To_do.md 상세화, 문서 동기화 및 .gitignore/.cursorignore 보완
 **[목표]** 총괄 아키텍트(Gemini)와 Cursor AI 간 효율적인 협업을 위해 `To_do.md`를 상세하게 재작성하고, `Architecture.md`, `Tree.md`, `Work_Process.md`를 현재 상황에 맞게 동기화. 또한 프로젝트 보안 및 AI 효율성을 위해 `.gitignore`와 `.cursorignore` 파일을 보완.

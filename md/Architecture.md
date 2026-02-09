@@ -43,18 +43,25 @@ sequenceDiagram
 ## 2. 🧩 Components
 
 ### 2.1. Managers (Singleton)
-* **`GameManager`**: 앱 전반의 상태(State) 관리.
-* **`DataManager`**: 로컬(JSON) 및 클라우드(Firestore) 데이터 동기화.
-* **`LocalizationManager` (New)**:
+* **`GameManager`**: 앱 전반의 상태(State) 관리. `DontDestroyOnLoad` 적용, `GameState` enum (Intro, Main) 포함.
+* **`DataManager`**: 로컬(JSON) 및 클라우드(Firestore) 데이터 동기화. `Save()`, `Load()` 메서드 제공.
+* **`LocalizationManager`**:
     * 시스템 언어 감지 → 지원 언어(En/Ko) 자동 매칭.
-    * 런타임 언어 변경 기능 (`SetLanguage("ko")`) 지원.
-* **`RoutineManager`**: 핵심 루틴(One Tap) 및 스트릭(Streak) 로직 처리.
-* **`AuthManager`**: 소셜 로그인 및 인증 관리.
+    * 런타임 언어 변경 기능 (`SetLanguage(string langCode)`) 지원.
+* **`RoutineManager`**: 핵심 루틴(One Tap) 및 스트릭(Streak) 로직 처리. `IsTodayDone()`, `TryRoutineAction()` 메서드 제공.
+* **`AuthManager`**: 소셜 로그인 및 인증 관리. `Login()`, `Logout()` 메서드 제공.
 
 ### 2.2. Views (UI)
 * **`UI_Onboarding`**: Intro 텍스트 애니메이션, 목표 설정 슬라이더.
 * **`UI_Main`**: 메인 버튼(The Button), 상단 정보(국기, 포인트, 불꽃).
 * **`UI_Settings`**: 언어 선택 드롭다운, 알림 및 사운드 토글.
+
+### 2.3. Editor Tools
+* **`ProjectSetupTool`** (`Assets/Editor/ProjectSetupTool.cs`):
+    * 프로젝트 초기 설정을 위한 에디터 툴.
+    * `Tools > J_O_T > Initialize Project` 메뉴로 실행 가능.
+    * Tree.md 구조에 맞는 폴더 구조 자동 생성.
+    * 5개 핵심 매니저 스크립트 템플릿 자동 생성.
 
 ---
 

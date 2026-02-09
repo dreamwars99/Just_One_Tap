@@ -42,6 +42,7 @@ Assets/
 │   └── Prefabs/
 │
 ├── Editor/
+│   ├── ProjectSetupTool.cs  # 프로젝트 초기 설정 툴 (폴더 구조 및 매니저 스크립트 자동 생성)
 │   └── UISetupTool.cs       # UI 자동 생성 툴
 │
 └── Plugins/
