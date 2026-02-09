@@ -57,10 +57,10 @@
 
 - [x] **Package Manager 설치**
     - [x] **PackageInstaller 에디터 툴 구현** (`Assets/Editor/PackageInstaller.cs`) — `Tools > J_O_T > Install Packages & Data` 메뉴로 실행 가능.
-    - [x] **Vector Graphics:** Unity Package Manager를 통한 설치 요청 기능 구현 (`com.unity.vectorgraphics`). — 기획서 §5 Assets: Vector 필수.
-    - [x] **Localization:** Unity Package Manager를 통한 설치 요청 기능 구현 (`com.unity.localization`).
+    - [x] **Vector Graphics:** Unity Package Manager를 통한 수동 설치 완료 (`com.unity.vectorgraphics`). — 기획서 §5 Assets: Vector 필수.
+    - [x] **Localization:** Unity Package Manager를 통한 수동 설치 완료 (`com.unity.localization`).
     - [ ] **DOTween:** Asset Store 또는 Package Manager (애니메이션·UI 연출) — 이후 단계에서 설치 예정.
-    - [ ] **Firebase:** Auth, Firestore SDK 패키지 추가 (초기 설정은 이후 단계에서).
+    - [x] **Firebase:** Auth, Firestore SDK 패키지 수동 임포트 완료 (FirebaseAuth, FirebaseFirestore, FirebaseAnalytics, FirebaseCrashlytics, FirebaseMessaging).
 - [x] **Localization 세팅**
     - [x] Unity Localization 패키지 설치 요청 기능 구현 완료.
     - [x] `_Project/Resources/Localization`에 `en.json`, `ko.json` 파일 생성 기능 구현 완료.
@@ -266,12 +266,16 @@
 # ✅ Completed (완료된 작업)
 
 ### 2026-02-09
-- **PackageInstaller 구현 완료**
+- **PackageInstaller 구현 및 Unity 패키지 수동 설치 완료**
   - `Assets/Editor/PackageInstaller.cs` 생성 완료.
-  - `Tools > J_O_T > Install Packages & Data` 메뉴로 패키지 설치 및 다국어 데이터 생성 기능 제공.
+  - `Tools > J_O_T > Install Packages & Data` 메뉴로 패키지 설치 요청 및 다국어 데이터 생성 기능 제공.
   - Unity Package Manager를 통한 패키지 설치 요청 기능 구현 (`com.unity.vectorgraphics`, `com.unity.localization`).
+  - `com.unity.vectorgraphics`, `com.unity.localization` 패키지 Unity Package Manager를 통해 수동 설치 완료.
   - `Assets/_Project/Resources/Localization` 폴더에 `en.json`, `ko.json` 파일 자동 생성 기능 구현.
   - 기존 파일 덮어쓰기 방지 로직 포함, UTF-8 인코딩 사용.
+- **Firebase SDK 수동 임포트 완료**
+  - Firebase SDK 5종 수동 임포트 완료: FirebaseAuth, FirebaseFirestore, FirebaseAnalytics, FirebaseCrashlytics, FirebaseMessaging.
+  - Android Auto-resolution 활성화, API Compatibility Level `.NET Standard 2.1` 유지.
 - **ProjectSetupTool 구현 완료**
   - `Assets/Editor/ProjectSetupTool.cs` 생성 완료.
   - `Tools > J_O_T > Initialize Project` 메뉴로 프로젝트 초기화 기능 제공.
