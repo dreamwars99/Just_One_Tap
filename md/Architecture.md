@@ -65,11 +65,11 @@ sequenceDiagram
     * `Tools > J_O_T > Apply Project Settings` 메뉴로 Player Settings 자동 적용 기능 제공.
     * Player Settings 자동 적용: Identity(Company, Product, Package, Version), Resolution(Portrait 고정), Android(MinSDK 24, IL2CPP, .NET Standard, ARM64+ARMv7), Accelerometer Frequency 60Hz.
 * **`PackageInstaller`** (`Assets/Editor/PackageInstaller.cs`):
-    * Unity 필수 패키지 설치 및 다국어 기초 데이터(JSON) 생성을 위한 에디터 툴.
-    * `Tools > J_O_T > Install Packages & Data` 메뉴로 실행 가능.
-    * Unity Package Manager를 통한 패키지 설치 요청 (`com.unity.vectorgraphics`, `com.unity.localization`).
-    * `Assets/_Project/Resources/Localization` 폴더에 `en.json`, `ko.json` 파일 자동 생성.
-    * 기존 파일 덮어쓰기 방지, UTF-8 인코딩 사용.
+    * Unity 필수 패키지 설치를 위한 에디터 툴.
+    * `Tools > J_O_T > Install Essential Packages` 메뉴로 실행 가능.
+    * `UnityEditor.PackageManager.Client.Add`를 사용하여 패키지 설치 요청 (`com.unity.vectorgraphics`, `com.unity.localization`).
+    * 복잡한 로직 없이 심플한 스크립트로 작성 (`Client.Add`만 수행).
+    * 패키지 설치 진행 상황은 Package Manager 창에서 확인 가능.
 
 ---
 
