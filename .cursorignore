@@ -1,0 +1,119 @@
+# Unity Generated Folders (AI가 절대 읽을 필요 없음)
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+ProjectSettings/
+MemoryCaptures/
+
+# IDE & Version Control
+.git/
+.vs/
+.vscode/
+.idea/
+.gradle/
+.consulo/
+*.sln
+*.csproj
+*.unityproj
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.pdb
+*.opendb
+*.VC.db
+*.tmp
+*.lock
+*.swp
+
+# Binary & Asset Files (AI는 텍스트만 잘 읽음)
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.psd
+*.fbx
+*.obj
+*.blend
+*.mp3
+*.wav
+*.ogg
+*.mp4
+*.mov
+*.pdf
+*.zip
+*.7z
+*.rar
+
+# Unity Asset Files (바이너리, 읽을 필요 없음)
+*.unity
+*.prefab
+*.asset
+*.controller
+*.anim
+*.shader
+*.cginc
+*.shadergraph
+*.ttf
+*.otf
+*.dll
+
+# Unity Specific (중요!)
+# .meta 파일은 유니티 연결 정보인데, AI가 코딩할 땐 노이즈만 됨.
+*.meta
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.json.meta
+
+# Build Artifacts
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Generated Files
+FigmaOutput.json
+crashlytics-build.properties
+*.js.map
+
+# Firebase / Google Services (보안 파일 - AI가 읽을 필요 없음)
+**/google-services.json
+**/GoogleService-Info.plist
+**/google-services-desktop.json
+**/google-services.xml
+**/FirebaseApp.androidlib/
+
+# Firebase Large Binaries
+**/FirebaseCppApp-*.bundle
+**/FirebaseCppApp-*.so
+**/FirebaseCppApp-*.dll
+
+# Localization (JSON 파일은 읽어야 하지만 .meta는 제외)
+# 실제 en.json, ko.json은 읽어야 하므로 제외하지 않음
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Package Cache (내가 수정할 코드 아님)
+Packages/
+ExternalDependencyManager/
+
+# Unity Cloud Build
+cloudbuild/
+
+# Local Save Files (런타임 생성)
+**/savefile.json
+**/savefile_*.json
+
+# Optional: 피그마 등 기획 문서 폴더 (필요할 때만 @로 호출)
+# md/
+
+# Documentation
+기획서/
