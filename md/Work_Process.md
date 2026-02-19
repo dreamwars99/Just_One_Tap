@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-09 (7차)
+- **Last Updated:** 2026-02-19 (8차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -114,6 +114,38 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+### 2026-02-19 (1차) - Figma 전체 트리 SVG 추출 플러그인 구현 및 검증
+**[목표]** Figma 디자인을 수동 노가다 없이 트리 전체 기준으로 SVG 추출하기 위해 개발 플러그인을 직접 구현하고, 실제 파일에서 추출 검증 후 문서/보안 설정을 동기화함.
+
+#### 구현 내용
+- **Figma 개발 플러그인 신규 추가** (`figma-plugin/export-all-svg`)
+  - `manifest.json`: 개발 플러그인 등록 정보.
+  - `code.js`: 노드 재귀 수집, 노드별 `exportAsync({ format: "SVG" })`, ZIP 생성, `_manifest.json`/`_failed.json` 기록.
+  - `ui.html`: Scope 선택(`selection`, `current-page`, `all-pages`) 및 옵션 토글(`includeHidden`, `includeLocked`, `onlyLeafNodes`, `outlineText`) + 진행 로그.
+  - `README.md`: 설치/실행 방법 문서화.
+- **런타임 호환성 버그 수정**
+  - `Unexpected token ...` 오류 대응: object/array spread 문법 제거 (`Object.assign`, `concat` 사용).
+  - `TextEncoder is not defined` 오류 대응: 내장 UTF-8 인코더(`utf8Encode`)로 교체.
+- **실제 추출 검증 완료**
+  - 결과 파일: `Page 1/`, `_manifest.json`, `_failed.json`.
+  - 검증 수치: `totalTargets=4104`, `exportedCount=3302`, `failedCount=802`.
+  - 실패 802건은 전부 동일 사유: `Failed to export node. This node may not have any visible layers.`
+  - 결론: 추출 파이프라인 자체는 정상 동작, 실패는 보조/비가시 노드 중심.
+
+#### 보안/커밋 정책 정리
+- **코드(플러그인)는 커밋 가능**
+  - 커밋 대상: `figma-plugin/export-all-svg/*`, 문서, 툴 스크립트.
+- **생성 산출물은 Git 제외 권장**
+  - `Page 1/`, `_manifest.json`, `_failed.json`, ZIP 결과물은 로컬 검증용 산출물이므로 `.gitignore` 반영.
+
+#### 문서 동기화
+- `md/To_do.md`: Figma 추출 파이프라인 완료 및 후속 TODO(실패 항목 후처리) 반영.
+- `md/Tree.md`: 실제 구조 + Figma 플러그인 폴더/로컬 산출물 구조 반영.
+- `md/Architecture.md`: Editor/Tooling + Figma Export Pipeline 아키텍처 반영.
+- `md/Work_Process.md`: 본 8차 기록 추가 및 Last Updated 갱신.
+
+---
 
 ### 2026-02-09 (7차) - PackageInstaller 단순화 및 Phase 0.2 필수 패키지 설치 기능 최적화
 **[목표]** Phase 0.2의 필수 항목인 `Vector Graphics` 패키지 설치를 위해 `PackageInstaller.cs`를 단순화하고, 패키지 설치 요청 기능만 수행하도록 최적화함.

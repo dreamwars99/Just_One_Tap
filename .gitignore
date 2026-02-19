@@ -94,3 +94,15 @@ cloudbuild/
 
 # Documentation
 기획서/
+
+# Local env secrets
+.env
+
+# Figma local export artifacts (generated)
+/Page 1/
+/_manifest.json
+/_failed.json
+/figma-svg-export-*.zip
+/components*.zip
+/J_O_T_Project_layers/
+/md/error_log.md

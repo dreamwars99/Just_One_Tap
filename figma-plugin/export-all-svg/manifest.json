@@ -1,0 +1,10 @@
+{
+  "name": "Export All Nodes To SVG (Full Tree)",
+  "id": "export-all-nodes-to-svg-full-tree",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ]
+}

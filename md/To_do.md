@@ -24,7 +24,7 @@
 - **Project:** Just One Tap (J_O_T)
 - **Phase:** 🛑 Phase 0: Foundation
 - **Engine:** Unity 2022.3 LTS (2D URP)
-- **Last Sync:** Dev-Roadmap Phase 0 ~ Phase 4 기준 정리
+- **Last Sync:** 2026-02-19 (Figma SVG Export Plugin/문서 동기화 반영)
 
 ---
 
@@ -68,7 +68,10 @@
     - [x] 초기 JSON 키 포함: `msg_ready`, `msg_tap_to_save`, `msg_see_you_tomorrow`, `msg_saved`, `label_streak`, `label_points`.
     - [ ] Default Locale: **English** 설정 (Unity Localization 패키지 설치 후 설정 예정).
 - [ ] **리소스 임포트 (Figma/에셋)**
-    - [ ] Figma에서 아이콘(SVG) 추출 → `_Project/Art/Icons` 임포트. (기획서 §2.2 Cute Isometric Icons Pack 등)
+    - [x] Figma 전체 트리 SVG 추출용 플러그인 개발 완료 (`figma-plugin/export-all-svg`).
+    - [x] `all-pages` 기준 1회 추출 검증 완료: `totalTargets=4104`, `exported=3302`, `failed=802` (`_manifest.json` 기준).
+    - [ ] SVG 산출물 정리 후 `_Project/Art/Icons` 또는 Unity UI 전용 폴더로 이동/재분류.
+    - [ ] 실패 802건 후처리 정책 결정 (스킵 유지 / leaf-only 재추출 / PNG fallback).
     - [ ] 폰트: Jua 또는 프로젝트 지정 폰트 → TextMeshPro SDF 생성 → `_Project/Art/Fonts` 또는 TMP 기본 경로.
 
 ---
@@ -266,6 +269,17 @@
 
 # ✅ Completed (완료된 작업)
 
+### 2026-02-19
+- **Figma SVG Export Plugin 구현 및 추출 검증 완료**
+  - `figma-plugin/export-all-svg/manifest.json`, `code.js`, `ui.html`, `README.md` 신규 추가.
+  - 플러그인 기능: 트리 전체 재귀 추적, 노드별 SVG export, ZIP 다운로드, `_manifest.json`/`_failed.json` 생성.
+  - 호환성 수정:
+    - `Unexpected token ...` 오류 대응을 위해 object/array spread 제거 (`Object.assign`, `concat` 사용).
+    - `TextEncoder is not defined` 오류 대응을 위해 내부 UTF-8 인코더(`utf8Encode`)로 교체.
+  - 실제 추출 결과 검증:
+    - `pageName=Page 1`, `scope=all-pages`, `totalTargets=4104`, `exportedCount=3302`, `failedCount=802`.
+    - 실패 원인 100% 동일: `This node may not have any visible layers.`
+
 ### 2026-02-09
 - **PackageInstaller 단순화 및 패키지 설치 기능 최적화**
   - `Assets/Editor/PackageInstaller.cs` 수정 완료.
@@ -295,4 +309,4 @@
 
 ---
 
-**문서 버전:** 2026-02-09 — project_proposal, Dev-Roadmap, Architecture, CURSOR_GUIDELINES 반영.
+**문서 버전:** 2026-02-19 — Figma SVG Export Plugin 및 추출 검증 상태 반영.

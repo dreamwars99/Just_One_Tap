@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Export All SVG</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --fg: #1b1b1b;
+      --sub: #5b5b5b;
+      --border: #d9d9d9;
+      --primary: #0d99ff;
+      --primary-fg: #ffffff;
+      --danger: #c83232;
+      --panel: #f8f8f8;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1f1f1f;
+        --fg: #f2f2f2;
+        --sub: #bbbbbb;
+        --border: #3b3b3b;
+        --primary: #2a8cff;
+        --primary-fg: #ffffff;
+        --danger: #ff7d7d;
+        --panel: #2a2a2a;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0;
+      color: var(--sub);
+    }
+
+    .meta {
+      margin: 0 0 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    select,
+    button {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      background: var(--bg);
+      color: var(--fg);
+      font: inherit;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: var(--fg);
+    }
+
+    .check input {
+      margin: 0;
+      inline-size: 14px;
+      block-size: 14px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .primary {
+      background: var(--primary);
+      color: var(--primary-fg);
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    .primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--panel);
+      min-height: 180px;
+    }
+
+    .line {
+      margin: 0 0 6px;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .line:last-child {
+      margin-bottom: 0;
+    }
+
+    .muted {
+      color: var(--sub);
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Export All Nodes To SVG</h1>
+  <p>Recursively export every exportable node and download as one ZIP.</p>
+
+  <div id="meta" class="meta muted">Loading...</div>
+
+  <div class="grid">
+    <div class="field">
+      <label for="scope">Scope</label>
+      <select id="scope">
+        <option value="selection">Selection</option>
+        <option value="current-page">Current page</option>
+        <option value="all-pages">All pages</option>
+      </select>
+    </div>
+
+    <label class="check">
+      <input id="includeHidden" type="checkbox" />
+      Include hidden nodes
+    </label>
+
+    <label class="check">
+      <input id="includeLocked" type="checkbox" checked />
+      Include locked nodes
+    </label>
+
+    <label class="check">
+      <input id="onlyLeafNodes" type="checkbox" />
+      Only leaf render nodes
+    </label>
+
+    <label class="check">
+      <input id="outlineText" type="checkbox" />
+      Outline text in SVG
+    </label>
+  </div>
+
+  <div class="actions">
+    <button id="startBtn" class="primary">Start Export</button>
+    <button id="closeBtn">Close</button>
+  </div>
+
+  <div id="status" class="status">
+    <p class="line muted">Ready.</p>
+  </div>
+
+  <script>
+    const state = {
+      ready: false,
+      running: false
+    };
+
+    const meta = document.getElementById("meta");
+    const status = document.getElementById("status");
+    const startBtn = document.getElementById("startBtn");
+    const closeBtn = document.getElementById("closeBtn");
+    const scope = document.getElementById("scope");
+    const includeHidden = document.getElementById("includeHidden");
+    const includeLocked = document.getElementById("includeLocked");
+    const onlyLeafNodes = document.getElementById("onlyLeafNodes");
+    const outlineText = document.getElementById("outlineText");
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;");
+    }
+
+    function appendLine(text, className) {
+      const line = document.createElement("p");
+      line.className = "line" + (className ? " " + className : "");
+      line.innerHTML = escapeHtml(text);
+      status.appendChild(line);
+      status.scrollTop = status.scrollHeight;
+    }
+
+    function clearStatus() {
+      status.innerHTML = "";
+    }
+
+    function setRunning(running) {
+      state.running = running;
+      startBtn.disabled = running || !state.ready;
+      scope.disabled = running;
+      includeHidden.disabled = running;
+      includeLocked.disabled = running;
+      onlyLeafNodes.disabled = running;
+      outlineText.disabled = running;
+    }
+
+    function downloadZip(fileName, bytesLike) {
+      const bytes = bytesLike instanceof Uint8Array ? bytesLike : new Uint8Array(bytesLike);
+      const blob = new Blob([bytes], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    startBtn.addEventListener("click", () => {
+      clearStatus();
+      appendLine("Starting export...");
+      setRunning(true);
+
+      parent.postMessage(
+        {
+          pluginMessage: {
+            type: "start-export",
+            settings: {
+              scope: scope.value,
+              includeHidden: includeHidden.checked,
+              includeLocked: includeLocked.checked,
+              onlyLeafNodes: onlyLeafNodes.checked,
+              outlineText: outlineText.checked
+            }
+          }
+        },
+        "*"
+      );
+    });
+
+    closeBtn.addEventListener("click", () => {
+      parent.postMessage({ pluginMessage: { type: "close-plugin" } }, "*");
+    });
+
+    window.onmessage = (event) => {
+      const msg = event.data && event.data.pluginMessage;
+      if (!msg || typeof msg !== "object") {
+        return;
+      }
+
+      if (msg.type === "ready") {
+        state.ready = true;
+        setRunning(false);
+        meta.textContent =
+          "File: " +
+          msg.fileName +
+          " | Current page: " +
+          msg.currentPageName +
+          " | Selection: " +
+          msg.selectionCount;
+        appendLine("Ready. Choose scope and click Start Export.", "muted");
+        return;
+      }
+
+      if (msg.type === "collect-summary") {
+        appendLine("Targets found: " + msg.totalTargets);
+        return;
+      }
+
+      if (msg.type === "progress") {
+        if (msg.phase === "export") {
+          appendLine(
+            "Exporting " + msg.completed + "/" + msg.total + " | " + (msg.current || ""),
+            "muted"
+          );
+        } else if (msg.phase === "zip") {
+          appendLine("Packing zip...", "muted");
+        }
+        return;
+      }
+
+      if (msg.type === "done") {
+        downloadZip(msg.fileName, msg.zipBytes);
+        appendLine(
+          "Done. Exported: " +
+            msg.exportedCount +
+            ", Failed: " +
+            msg.failedCount +
+            ", Total targets: " +
+            msg.totalTargets
+        );
+        setRunning(false);
+        return;
+      }
+
+      if (msg.type === "error") {
+        appendLine("Error: " + msg.message, "error");
+        setRunning(false);
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # 🏗️ System Architecture: Just One Tap
 
-> **Pattern:** MCV (Manager-Controller-View)
-> **Localization:** Multi-language Support Architecture
+> **Pattern:** MCV (Manager-Controller-View)  
+> **Updated:** 2026-02-19
 
 ---
 
@@ -15,83 +15,90 @@ sequenceDiagram
     participant Loc as LocalizationManager
     participant Data as DataManager (Model)
 
-    User->>UI: 1. Big Button Tap
-    UI->>Core: 2. TryRoutineAction()
-    
-    Core->>Core: 3. Check (IsTodayDone?)
-    
-    alt Already Done
+    User->>UI: Big Button Tap
+    UI->>Core: TryRoutineAction()
+    Core->>Core: IsTodayDone?
+    alt Already done
         Core->>Loc: GetString("msg_already_done")
-        Loc-->>UI: "See you tomorrow!"
-        UI-->>User: Show Toast
+        Loc-->>UI: Localized message
+        UI-->>User: Show toast
     else Available
-        Core->>UI: 4. Show Ad
-        UI-->>User: Watch Ad (15s)
-        User-->>Core: Ad Complete
-        
-        activate Core
-        Core->>Data: 5. Save (Points++, Streak++)
-        Data->>Cloud: 6. Sync Firestore
-        deactivate Core
-        
+        Core->>UI: Request ad flow
+        User-->>Core: Ad completed
+        Core->>Data: Save points/streak
+        Data->>Cloud: Sync Firestore
         Core->>Loc: GetString("msg_success")
-        Loc-->>UI: "Saved!"
-        UI->>User: 7. Reward FX
+        Loc-->>UI: Localized reward message
+        UI-->>User: Reward FX
     end
 ```
 
-## 2. 🧩 Components
+---
 
-### 2.1. Managers (Singleton)
-* **`GameManager`**: 앱 전반의 상태(State) 관리. `DontDestroyOnLoad` 적용, `GameState` enum (Intro, Main) 포함.
-* **`DataManager`**: 로컬(JSON) 및 클라우드(Firestore) 데이터 동기화. `Save()`, `Load()` 메서드 제공.
-* **`LocalizationManager`**:
-    * 시스템 언어 감지 → 지원 언어(En/Ko) 자동 매칭.
-    * 런타임 언어 변경 기능 (`SetLanguage(string langCode)`) 지원.
-* **`RoutineManager`**: 핵심 루틴(One Tap) 및 스트릭(Streak) 로직 처리. `IsTodayDone()`, `TryRoutineAction()` 메서드 제공.
-* **`AuthManager`**: 소셜 로그인 및 인증 관리. `Login()`, `Logout()` 메서드 제공.
+## 2. 🧩 Runtime Components
 
-### 2.2. Views (UI)
-* **`UI_Onboarding`**: Intro 텍스트 애니메이션, 목표 설정 슬라이더.
-* **`UI_Main`**: 메인 버튼(The Button), 상단 정보(국기, 포인트, 불꽃).
-* **`UI_Settings`**: 언어 선택 드롭다운, 알림 및 사운드 토글.
+### 2.1 Managers (Singleton)
+- `GameManager`: 앱 전역 상태, 씬 전환 컨텍스트 관리.
+- `RoutineManager`: 1일 1탭 루틴 규칙, streak/point 로직.
+- `DataManager`: 로컬 JSON + Firestore 동기화.
+- `LocalizationManager`: 언어 선택/문자열 조회.
+- `AuthManager`: 로그인/로그아웃, 사용자 식별 연동.
 
-### 2.3. Editor Tools
-* **`ProjectSetupTool`** (`Assets/Editor/ProjectSetupTool.cs`):
-    * 프로젝트 초기 설정을 위한 에디터 툴.
-    * `Tools > J_O_T > Initialize Project` 메뉴로 실행 가능.
-    * Tree.md 구조에 맞는 폴더 구조 자동 생성.
-    * 5개 핵심 매니저 스크립트 템플릿 자동 생성.
-    * `Tools > J_O_T > Apply Project Settings` 메뉴로 Player Settings 자동 적용 기능 제공.
-    * Player Settings 자동 적용: Identity(Company, Product, Package, Version), Resolution(Portrait 고정), Android(MinSDK 24, IL2CPP, .NET Standard, ARM64+ARMv7), Accelerometer Frequency 60Hz.
-* **`PackageInstaller`** (`Assets/Editor/PackageInstaller.cs`):
-    * Unity 필수 패키지 설치를 위한 에디터 툴.
-    * `Tools > J_O_T > Install Essential Packages` 메뉴로 실행 가능.
-    * `UnityEditor.PackageManager.Client.Add`를 사용하여 패키지 설치 요청 (`com.unity.vectorgraphics`, `com.unity.localization`).
-    * 복잡한 로직 없이 심플한 스크립트로 작성 (`Client.Add`만 수행).
-    * 패키지 설치 진행 상황은 Package Manager 창에서 확인 가능.
+### 2.2 Views
+- `UI_Onboarding`: 온보딩 텍스트, 목표 설정.
+- `UI_Main`: 상단 상태 + 중앙 버튼 + 하단 네비.
+- `UI_Settings`: 언어/알림/사운드 설정.
 
 ---
 
-## 3. 💾 Data Schema
+## 3. 🛠️ Editor/Tooling Components
 
-> **Format:** JSON (Firestore Document)
+- `Assets/Editor/ProjectSetupTool.cs`
+  - 프로젝트 폴더/기본 스크립트 자동 생성.
+  - Player settings 자동 적용 (`Tools > J_O_T > Apply Project Settings`).
+- `Assets/Editor/PackageInstaller.cs`
+  - 필수 패키지 설치 요청 (`com.unity.vectorgraphics`, `com.unity.localization`).
+- `figma-plugin/export-all-svg/*`
+  - Figma 개발 플러그인.
+  - 전 페이지/현재 페이지/선택 범위 기반으로 전체 트리를 재귀 순회해 SVG export.
+  - ZIP + `_manifest.json` + `_failed.json` 생성.
+
+---
+
+## 4. 🎨 Figma Export Pipeline
+
+1. Figma 플러그인 실행 (`Export All Nodes To SVG (Full Tree)`).
+2. Scope 선택 (`selection` / `current-page` / `all-pages`).
+3. 노드 재귀 수집 후 `exportAsync({ format: "SVG" })` 개별 수행.
+4. 결과를 트리 구조대로 ZIP 패키징.
+5. `_manifest.json`/`_failed.json`로 결과 정량 검증.
+
+검증 결과(최근 실행):
+- `totalTargets`: 4104
+- `exportedCount`: 3302
+- `failedCount`: 802
+- 주요 실패 원인: 보이는 레이어가 없는 보조 노드(`Failed to export node. This node may not have any visible layers.`)
+
+---
+
+## 5. 💾 Data Schema
 
 ```json
 {
   "uid": "user_global_001",
   "identity": {
     "nickname": "Player1",
-    "country": "US",     // ISO 3166-1 alpha-2 code
-    "language": "en"     // "en", "ko", "ja", etc.
+    "country": "US",
+    "language": "en"
   },
   "settings": {
-    "dailyTarget": 5.0,    // 사용자 설정 목표 금액 (USD 기준)
-    "currencySymbol": "$"  // 표시할 통화 기호
+    "dailyTarget": 5.0,
+    "currencySymbol": "$"
   },
   "routine": {
-    "currentPoints": 15.0, // 누적 포인트
-    "currentStreak": 3,    // 연속 달성일
-    "lastActionDate": "2026-02-09" // 마지막 탭 날짜 (YYYY-MM-DD)
+    "currentPoints": 15.0,
+    "currentStreak": 3,
+    "lastActionDate": "2026-02-19"
   }
 }
+```
