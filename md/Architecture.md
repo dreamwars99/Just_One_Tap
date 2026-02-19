@@ -1,6 +1,6 @@
 # Architecture - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (3차)
+Updated: 2026-02-19 (4차)
 
 ## 1) 전체 구성
 1. Unity Runtime (게임 본체)
@@ -54,9 +54,16 @@ Updated: 2026-02-19 (3차)
 3. Root SVG 판정
    - 우선: `<screenName>__*.svg`
    - fallback: 화면 폴더 직속 첫 SVG
-4. 검수 상태 관리
+4. 2패널 비교 렌더
+   - 좌: Root SVG
+   - 우: Composited SVG (`leaf` 권장 / `all` 진단)
+5. 조합 렌더 방식
+   - `_node_layout.json`의 `bbox`, `zIndex` 기준 레이어 정렬
+   - 각 SVG를 `data:image/svg+xml;base64`로 임베딩해 `<image>`로 합성
+   - `innerHTML` 직접 병합 대비 `defs/clipPath/mask` 충돌 위험 완화
+6. 검수 상태 관리
    - `pending`, `approved`, `hold` + `reviewNote`
-5. 산출
+7. 산출
    - `unity-inspection-manifest.json`
    - CSV (옵션)
 
@@ -73,6 +80,6 @@ Updated: 2026-02-19 (3차)
 
 ## 6) 현재 결정 사항
 1. 1차는 플러그인 메타 확장까지 완료
-2. Inspector 2패널 비교(루트 SVG vs 조합 SVG)는 다음 단계
-3. Unity 씬 자동 배치는 후속 단계에서 진행
-
+2. Inspector 2패널 비교(루트 SVG vs 조합 SVG) 구현 완료
+3. 조합 모드는 `leaf` 기본 검수, `all` 진단 용도로 운영
+4. Unity 씬 자동 배치는 후속 단계에서 진행

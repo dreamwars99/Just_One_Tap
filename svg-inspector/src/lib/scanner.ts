@@ -1,40 +1,59 @@
-import type { InspectorProject, ScreenEntry, UnityManifestSummary } from "../types";
 import type { DirectorySnapshot, SourceFile } from "./fileSystem";
-import { getPathSegments, hashString, isSvgPath, parseNodeMeta, toFileName, tryGetRawIdFromFileName } from "./utils";
+import type { InputRootMode, InspectorProject, ScreenEntry, UnityManifestSummary } from "../types";
+import {
+  getPathSegments,
+  hashString,
+  isSvgPath,
+  normalizePath,
+  parseNodeMeta,
+  toFileName,
+  tryGetRawIdFromFileName,
+} from "./utils";
 
 export interface ScreenSourceFile {
   screenId: string;
   screenName: string;
   relativePath: string;
+  screenRelativePath: string;
   fileName: string;
   nodeId: string | null;
   nodeName: string;
   loadText: () => Promise<string>;
 }
 
+interface ScreenDefinition {
+  key: string;
+  name: string;
+  folderPath: string;
+}
+
 export interface ScanResult {
+  inputMode: InputRootMode;
   project: InspectorProject;
   sourceFiles: ScreenSourceFile[];
   filesByPath: Map<string, ScreenSourceFile>;
   filesByScreenId: Map<string, ScreenSourceFile[]>;
+  allFilesByPath: Map<string, SourceFile>;
   storageKey: string;
 }
 
 export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
-  const screenNames = discoverScreenFolders(snapshot);
-  const svgByScreen = collectSvgFilesByScreen(snapshot.files);
-  const usedIds = new Set<string>();
-  const screenIdByName = new Map<string, string>();
-  const screens: ScreenEntry[] = [];
+  const inputMode = detectInputMode(snapshot);
+  const screenDefs = discoverScreenDefinitions(snapshot, inputMode);
+  const svgByScreen = collectSvgFilesByScreen(snapshot.files, screenDefs);
 
-  for (const screenName of screenNames) {
-    const svgFiles = [...(svgByScreen.get(screenName) ?? [])].sort((left, right) =>
+  const screens: ScreenEntry[] = [];
+  const screenIdByKey = new Map<string, string>();
+  const usedIds = new Set<string>();
+
+  for (const screenDef of screenDefs) {
+    const svgFiles = [...(svgByScreen.get(screenDef.key) ?? [])].sort((left, right) =>
       left.relativePath.localeCompare(right.relativePath, "ko"),
     );
-    const rootFile = pickRootSvg(screenName, svgFiles);
+    const rootFile = pickRootSvg(screenDef, svgFiles, inputMode);
     const rootFileName = rootFile ? toFileName(rootFile.relativePath) : null;
-    const screenId = buildScreenId(screenName, rootFileName, usedIds);
-    screenIdByName.set(screenName, screenId);
+    const screenId = buildScreenId(screenDef.folderPath, rootFileName, usedIds);
+    screenIdByKey.set(screenDef.key, screenId);
 
     const issues: string[] = [];
     if (svgFiles.length === 0) {
@@ -46,9 +65,9 @@ export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
 
     screens.push({
       id: screenId,
-      name: screenName,
-      folderPath: screenName,
-      rootSvgPath: rootFile ? rootFile.relativePath : null,
+      name: screenDef.name,
+      folderPath: screenDef.folderPath,
+      rootSvgPath: rootFile ? normalizePath(rootFile.relativePath) : null,
       svgCount: svgFiles.length,
       reviewStatus: "pending",
       reviewNote: "",
@@ -57,21 +76,31 @@ export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
   }
 
   const sourceFiles: ScreenSourceFile[] = [];
-  for (const [screenName, svgFiles] of svgByScreen) {
-    const screenId = screenIdByName.get(screenName);
-    if (!screenId) {
+  for (const [screenKey, svgFiles] of svgByScreen) {
+    const screenDef = screenDefs.find((item) => item.key === screenKey);
+    const screenId = screenIdByKey.get(screenKey);
+    if (!screenDef || !screenId) {
       continue;
     }
+
     const sorted = [...svgFiles].sort((left, right) =>
       left.relativePath.localeCompare(right.relativePath, "ko"),
     );
+    const prefix = `${screenDef.folderPath}/`;
+
     for (const source of sorted) {
-      const fileName = toFileName(source.relativePath);
+      const relativePath = normalizePath(source.relativePath);
+      const screenRelativePath = relativePath.startsWith(prefix)
+        ? relativePath.slice(prefix.length)
+        : relativePath;
+      const fileName = toFileName(relativePath);
       const nodeMeta = parseNodeMeta(fileName);
+
       sourceFiles.push({
         screenId,
-        screenName,
-        relativePath: source.relativePath,
+        screenName: screenDef.name,
+        relativePath,
+        screenRelativePath,
         fileName,
         nodeId: nodeMeta.nodeId,
         nodeName: nodeMeta.nodeName,
@@ -91,6 +120,11 @@ export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
     filesByScreenId.get(file.screenId)?.push(file);
   }
 
+  const allFilesByPath = new Map<string, SourceFile>();
+  for (const file of snapshot.files) {
+    allFilesByPath.set(normalizePath(file.relativePath), file);
+  }
+
   const project: InspectorProject = {
     rootLabel: snapshot.rootLabel,
     selectedAt: snapshot.selectedAt,
@@ -98,10 +132,12 @@ export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
   };
 
   return {
+    inputMode,
     project,
     sourceFiles,
     filesByPath,
     filesByScreenId,
+    allFilesByPath,
     storageKey: buildStorageKey(snapshot.rootLabel, screens),
   };
 }
@@ -134,28 +170,91 @@ export function summarizeProject(project: InspectorProject): UnityManifestSummar
   };
 }
 
-function discoverScreenFolders(snapshot: DirectorySnapshot): string[] {
-  const names = new Set<string>();
+function detectInputMode(snapshot: DirectorySnapshot): InputRootMode {
+  const all = new Set<string>(snapshot.files.map((file) => normalizePath(file.relativePath)));
+  if (all.has("_node_layout.json")) {
+    return "export-root";
+  }
+  return "page-root";
+}
+
+function discoverScreenDefinitions(snapshot: DirectorySnapshot, inputMode: InputRootMode): ScreenDefinition[] {
+  if (inputMode === "export-root") {
+    return discoverExportRootScreens(snapshot);
+  }
+  return discoverPageRootScreens(snapshot);
+}
+
+function discoverPageRootScreens(snapshot: DirectorySnapshot): ScreenDefinition[] {
+  const byKey = new Map<string, ScreenDefinition>();
 
   for (const directory of snapshot.directories) {
     const segments = getPathSegments(directory);
     if (segments.length === 1) {
-      names.add(segments[0]);
+      const key = segments[0];
+      byKey.set(key, {
+        key,
+        name: segments[0],
+        folderPath: segments[0],
+      });
     }
   }
 
-  for (const file of snapshot.files) {
-    const segments = getPathSegments(file.relativePath);
-    if (segments.length >= 2) {
-      names.add(segments[0]);
+  for (const source of snapshot.files) {
+    if (!isSvgPath(source.relativePath)) {
+      continue;
+    }
+    const segments = getPathSegments(source.relativePath);
+    if (segments.length < 2) {
+      continue;
+    }
+    const key = segments[0];
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        name: segments[0],
+        folderPath: segments[0],
+      });
     }
   }
 
-  return [...names].sort((left, right) => left.localeCompare(right, "ko"));
+  return [...byKey.values()].sort((left, right) => left.name.localeCompare(right.name, "ko"));
 }
 
-function collectSvgFilesByScreen(files: SourceFile[]): Map<string, SourceFile[]> {
+function discoverExportRootScreens(snapshot: DirectorySnapshot): ScreenDefinition[] {
+  const byKey = new Map<string, ScreenDefinition>();
+
+  for (const source of snapshot.files) {
+    if (!isSvgPath(source.relativePath)) {
+      continue;
+    }
+    const segments = getPathSegments(source.relativePath);
+    if (segments.length < 3) {
+      continue;
+    }
+    const pageName = segments[0];
+    const screenName = segments[1];
+    const key = `${pageName}/${screenName}`;
+    if (byKey.has(key)) {
+      continue;
+    }
+    byKey.set(key, {
+      key,
+      name: screenName,
+      folderPath: key,
+    });
+  }
+
+  return [...byKey.values()].sort((left, right) => left.folderPath.localeCompare(right.folderPath, "ko"));
+}
+
+function collectSvgFilesByScreen(
+  files: SourceFile[],
+  screenDefs: ScreenDefinition[],
+): Map<string, SourceFile[]> {
   const grouped = new Map<string, SourceFile[]>();
+  const validKeys = new Set<string>(screenDefs.map((item) => item.key));
+
   for (const source of files) {
     if (!isSvgPath(source.relativePath)) {
       continue;
@@ -164,31 +263,63 @@ function collectSvgFilesByScreen(files: SourceFile[]): Map<string, SourceFile[]>
     if (segments.length < 2) {
       continue;
     }
-    const screenName = segments[0];
-    if (!grouped.has(screenName)) {
-      grouped.set(screenName, []);
+
+    let screenKey: string | null = null;
+    if (segments.length >= 3) {
+      const exportKey = `${segments[0]}/${segments[1]}`;
+      if (validKeys.has(exportKey)) {
+        screenKey = exportKey;
+      }
     }
-    grouped.get(screenName)?.push(source);
+    if (!screenKey && validKeys.has(segments[0])) {
+      screenKey = segments[0];
+    }
+    if (!screenKey) {
+      continue;
+    }
+
+    if (!grouped.has(screenKey)) {
+      grouped.set(screenKey, []);
+    }
+    grouped.get(screenKey)?.push({
+      ...source,
+      relativePath: normalizePath(source.relativePath),
+    });
   }
+
   return grouped;
 }
 
-function pickRootSvg(screenName: string, files: SourceFile[]): SourceFile | null {
+function pickRootSvg(
+  screenDef: ScreenDefinition,
+  files: SourceFile[],
+  inputMode: InputRootMode,
+): SourceFile | null {
   if (files.length === 0) {
     return null;
   }
 
+  const screenSegments = getPathSegments(screenDef.folderPath);
   const topLevel = files.filter((file) => {
     const segments = getPathSegments(file.relativePath);
-    return segments.length === 2 && segments[0] === screenName;
+    if (inputMode === "export-root") {
+      return (
+        segments.length === 3 &&
+        segments[0] === screenSegments[0] &&
+        segments[1] === screenSegments[1]
+      );
+    }
+    return segments.length === 2 && segments[0] === screenSegments[0];
   });
 
   if (topLevel.length === 0) {
     return null;
   }
 
-  const rootPrefix = `${screenName}__`.toLowerCase();
-  const exact = topLevel.find((file) => toFileName(file.relativePath).toLowerCase().startsWith(rootPrefix));
+  const rootPrefix = `${screenDef.name}__`.toLowerCase();
+  const exact = topLevel.find((file) =>
+    toFileName(file.relativePath).toLowerCase().startsWith(rootPrefix),
+  );
   if (exact) {
     return exact;
   }
@@ -196,9 +327,9 @@ function pickRootSvg(screenName: string, files: SourceFile[]): SourceFile | null
   return [...topLevel].sort((left, right) => left.relativePath.localeCompare(right.relativePath, "ko"))[0];
 }
 
-function buildScreenId(screenName: string, rootFileName: string | null, usedIds: Set<string>): string {
+function buildScreenId(screenFolderPath: string, rootFileName: string | null, usedIds: Set<string>): string {
   const fromRoot = rootFileName ? tryGetRawIdFromFileName(rootFileName) : null;
-  const baseId = fromRoot ?? `hash-${hashString(screenName)}`;
+  const baseId = fromRoot ?? `hash-${hashString(screenFolderPath)}`;
 
   let candidate = baseId;
   let index = 2;

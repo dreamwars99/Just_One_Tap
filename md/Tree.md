@@ -1,6 +1,6 @@
 # Project Tree - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (3차)
+Updated: 2026-02-19 (4차)
 
 ## 1) Repository Root
 ```text
@@ -72,6 +72,8 @@ svg-inspector/
 │  └─ lib/
 │     ├─ fileSystem.ts
 │     ├─ scanner.ts
+│     ├─ layout.ts
+│     ├─ composer.ts
 │     ├─ manifest.ts
 │     ├─ reviewState.ts
 │     └─ utils.ts
@@ -89,5 +91,5 @@ _node_layout.json
 figma-svg-export-*.zip
 figma-svg-export-*/          # ZIP 해제 폴더
 unity-inspection-manifest.json
+components*.zip
 ```
-
