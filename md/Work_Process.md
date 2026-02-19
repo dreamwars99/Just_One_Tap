@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-19 (6차)
+- **Last Updated:** 2026-02-19 (7차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -114,6 +114,50 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+## 2026-02-19 (7차) - Open In Explorer 기능 안정화 + 문서 동기화
+### 목표
+- 컴포넌트 선택 시 자동 실행을 제거하고, `Open In Explorer` 버튼 실행만 허용한다.
+- Explorer 실행 시 `문서` 폴더로 튀는 현상을 제거하고, 대상 파일의 포함 폴더를 안정적으로 연다.
+- Explorer 전면 표시 이슈 대응을 위해 `Always open new Explorer window` 옵션을 추가한다.
+
+### 수행 내용
+1. UX 동작 정책 수정
+- 컴포넌트 클릭(트리/합성)은 선택 상태만 변경.
+- 실제 Explorer 실행은 `Open In Explorer` 버튼 클릭 시에만 수행.
+
+2. Explorer 연동 로직 정리
+- `svg-inspector/src/App.tsx`:
+  - `Open In Explorer` 버튼 연결 유지.
+  - 자동 실행 제거.
+  - `Always open new Explorer window` 토글 상태(localStorage) 저장/복원 추가.
+- `svg-inspector/vite.config.ts`:
+  - `POST /api/open-in-explorer` 브리지에서 `alwaysNewWindow` 플래그 처리.
+  - 파일 선택(`/select`) 대신 “포함 폴더 열기”로 최종 정책 고정.
+  - `alwaysNewWindow=true`일 때 `cmd /c start` 기반 새 창 오픈 분기 적용.
+
+3. 문서 동기화
+- `md/To_do.md`: 7차 완료 항목 및 Last Sync 반영.
+- `md/Tree.md`: 8) 7차 업데이트 메모 추가.
+- `md/Architecture.md`: Explorer 수동 실행/포함 폴더 오픈/신규창 옵션 정책 반영.
+- `md/Work_Process.md`: 본 7차 기록 추가(기존 기록 유지).
+
+### 검증
+- `npm run lint` 통과.
+- `npm run build` 통과.
+- 실사용 확인: `Open In Explorer` 버튼으로 대상 파일의 포함 폴더 열기 정상 동작 확인.
+
+### 산출물
+- `svg-inspector/src/App.tsx`
+- `svg-inspector/vite.config.ts`
+- `svg-inspector/README.md`
+- `md/To_do.md`
+- `md/Tree.md`
+- `md/Architecture.md`
+- `md/Work_Process.md`
+
+### 메모
+- Windows 환경에서 Explorer 포커스는 OS 정책 영향이 있으므로, 실행 안정성을 우선으로 “포함 폴더 오픈” 정책을 고정했다.
 
 ## 2026-02-19 (6차) - SVG Inspector 선택/제외/하드삭제 기능 반영 + 문서 동기화
 ### 목표

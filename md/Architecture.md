@@ -1,6 +1,6 @@
 # Architecture - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
+Updated: 2026-02-19 (7차, Open In Explorer 안정화 반영)
 
 ## 1) 전체 구성
 
@@ -110,10 +110,14 @@ sequenceDiagram
    - 트리 클릭/합성 클릭 공통 선택 상태 유지
    - `Exclude`/`Restore`(비파괴)
    - `Delete File`(네이티브 모드 전용, fallback 모드 비활성화)
-7. 자동 제외 프리셋
+7. Explorer 연동
+   - `Open In Explorer` 버튼에서만 실행(컴포넌트 클릭 시 자동 실행 없음)
+   - 기본 동작: 선택된 SVG 파일의 “포함 폴더” 오픈
+   - 옵션: `Always open new Explorer window`
+8. 자동 제외 프리셋
    - `deviceChrome` (`status bar`, `battery`, `wifi`, `mobile signal`, `home indicator`)
    - `keyboard`
-8. 산출
+9. 산출
    - `unity-inspection-manifest.json`
    - `svg-inspector-exclusions.json`
    - CSV (옵션)
@@ -243,4 +247,6 @@ sequenceDiagram
 4. 컴포넌트 선택/제외/삭제 워크플로우 구현 완료
 5. 하드삭제는 네이티브 모드(`showDirectoryPicker`)에서만 허용
 6. 제외 상태는 `svg-inspector-exclusions.json`으로 별도 관리
-7. Unity 씬/프리팹 자동 배치 도구는 다음 단계
+7. Explorer 연동은 수동 버튼 기반(`Open In Explorer`)으로 운영
+8. Explorer는 파일 선택보다 포함 폴더 오픈을 우선 정책으로 사용
+9. Unity 씬/프리팹 자동 배치 도구는 다음 단계

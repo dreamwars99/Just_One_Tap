@@ -1,6 +1,6 @@
 # To-Do List - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
+Updated: 2026-02-19 (7차, Open In Explorer 안정화 반영)
 
 ## 1) 현재 상태 요약
 - [x] Unity 기본 프로젝트 구조/에디터 툴 준비 완료
@@ -15,6 +15,7 @@ Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
 - [x] 기존 산출물 호환 유지 (`_manifest.json`, `_failed.json`, SVG 네이밍)
 - [x] 컴포넌트 선택/제외 워크플로우 반영 (트리 <-> 합성 뷰 단일 선택 동기화)
 - [x] 비파괴 제외 + 하드삭제(네이티브 모드 전용) + exclusions 매니페스트 지원
+- [x] `Open In Explorer` 워크플로우 반영 (수동 버튼 실행, 포함 폴더 열기)
 
 ## 2) Figma 추출 파이프라인
 - [x] `_node_layout.json` 스키마 1차 반영
@@ -44,6 +45,9 @@ Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
 - [x] 자동 제외 프리셋(`deviceChrome`, `keyboard`) 지원
 - [x] `svg-inspector-exclusions.json` 저장/불러오기 + localStorage 복원
 - [x] 사용자 필터로 레이어 0건 시 안내 메시지 표시 (`All layers excluded by current filters.`)
+- [x] `Open In Explorer` 버튼 추가 (컴포넌트 클릭 시 자동 실행 없음)
+- [x] Explorer 열기 옵션 추가: `Always open new Explorer window`
+- [x] `Open In Explorer` 실행 시 파일 선택 대신 포함 폴더를 안정적으로 열도록 정리
 - [ ] overlay / opacity 슬라이더 / diff 보조 표시
 - [ ] 대용량(3k+ SVG) 성능 최적화
 
@@ -85,7 +89,7 @@ Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
 - Project: Just One Tap (J_O_T)
 - Phase: Phase 0 Foundation
 - Engine: Unity 2022.3 LTS (2D URP)
-- Last Sync: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
+- Last Sync: 2026-02-19 (7차, Open In Explorer 수동/안정화 반영)
 
 ---
 
@@ -226,6 +230,14 @@ Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
 ---
 
 # Completed (완료된 작업)
+
+### 2026-02-19 (7차)
+- SVG Inspector `Open In Explorer` 기능 안정화
+  - 컴포넌트 클릭 시 자동 Explorer 실행 제거
+  - `Open In Explorer` 버튼 클릭 시에만 실행
+  - `Always open new Explorer window` 옵션 추가 및 로컬 저장
+  - 파일 선택(`select`) 방식 대신 해당 파일 포함 폴더 열기로 고정
+  - 경로 파싱 이슈(`문서` 폴더 오픈) 완화 및 실행 방식 정리
 
 ### 2026-02-19 (6차)
 - SVG Inspector 선택/삭제 기능 1차 구현

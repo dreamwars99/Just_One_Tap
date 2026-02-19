@@ -14,6 +14,8 @@ Local QA app for checking exported Figma SVG assets before Unity import.
 5. Supports component removal workflows:
    - `Exclude` (non-destructive, composite-only removal)
    - `Delete File` (hard delete, native folder mode only)
+   - `Open In Explorer` (open selected component path in Windows Explorer)
+   - `Always open new Explorer window` option (recommended when taskbar-only flash occurs)
 6. Supports auto exclusion presets:
    - `Auto Exclude Device Chrome`
    - `Auto Exclude Keyboard`
@@ -33,6 +35,7 @@ If `_node_layout.json` is missing, root preview still works and composite panel 
 2. Pan: `Space + Left Drag`
 3. Mouse wheel zoom: disabled
 4. Composite layer pick: click a layer on the right panel.
+5. Explorer open: click `Open In Explorer` button for the selected component.
 
 ## Run
 ```bash
@@ -60,6 +63,12 @@ npm run lint
 1. `Delete File` is enabled only in native folder mode (`showDirectoryPicker`).
 2. In fallback mode (`webkitdirectory`), hard delete is disabled by design.
 3. Hard delete physically removes the SVG file from disk and requires confirmation.
+
+## Explorer open constraints
+1. Explorer integration uses local Vite bridge endpoint: `POST /api/open-in-explorer`.
+2. It works on Windows only.
+3. Run with `npm run dev` (or `npm run preview`) so the bridge endpoint exists.
+4. The selected root folder must exist under current workspace root (or `svg-inspector/` root) for path resolution.
 
 ## File tree badges
 1. `ROOT`: selected screen root SVG

@@ -1,6 +1,6 @@
 # Project Tree - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
+Updated: 2026-02-19 (7차, Open In Explorer 안정화 반영)
 
 ## 1) Repository Root
 
@@ -140,3 +140,16 @@ components*.zip
    - 사용자 필터로 0레이어일 때 fallback 금지 + 안내 메시지
 5. 신규 산출물
    - `svg-inspector-exclusions.json`
+
+## 8) 7차 업데이트 메모 (6차 대비)
+
+1. `svg-inspector/src/App.tsx` 수정
+   - 컴포넌트 클릭 시 자동 Explorer 실행 제거
+   - `Open In Explorer` 버튼에서만 실행
+   - `Always open new Explorer window` 옵션 및 localStorage 저장 추가
+2. `svg-inspector/vite.config.ts` 수정
+   - 로컬 브리지 `POST /api/open-in-explorer` 유지
+   - Explorer 실행을 “해당 파일 포함 폴더 열기”로 고정
+   - `alwaysNewWindow` 옵션 분기 처리
+3. `svg-inspector/README.md` 반영
+   - Explorer 실행 방식(수동 버튼 기반) 및 제약사항 최신화

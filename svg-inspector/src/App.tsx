@@ -97,6 +97,7 @@ const EMPTY_COMPOSITE: CompositeState = {
 const DEFAULT_VIEWPORT: Viewport = { zoom: 1, x: 0, y: 0 };
 const VIEWPORT_MIN = 0.15;
 const VIEWPORT_MAX = 8;
+const EXPLORER_NEW_WINDOW_KEY = "svg-inspector:explorer:new-window";
 const STATUS_OPTIONS: Array<{ value: ScreenFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "approved", label: "Approved" },
@@ -123,6 +124,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<ScreenFilter>("all");
   const [bg, setBg] = useState<PreviewBg>("checker");
   const [compositeMode, setCompositeMode] = useState<CompositeMode>("all");
+  const [alwaysNewExplorerWindow, setAlwaysNewExplorerWindow] = useState(true);
   const [rootPreview, setRootPreview] = useState<PreviewState>(EMPTY_PREVIEW);
   const [compositePreview, setCompositePreview] = useState<CompositeState>(EMPTY_COMPOSITE);
   const [viewport, setViewport] = useState<Viewport>(DEFAULT_VIEWPORT);
@@ -162,6 +164,28 @@ function App() {
     const timeout = window.setTimeout(() => setNotice(null), 5000);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(EXPLORER_NEW_WINDOW_KEY);
+      if (stored === "0") {
+        setAlwaysNewExplorerWindow(false);
+      }
+      if (stored === "1") {
+        setAlwaysNewExplorerWindow(true);
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EXPLORER_NEW_WINDOW_KEY, alwaysNewExplorerWindow ? "1" : "0");
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [alwaysNewExplorerWindow]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -557,14 +581,40 @@ function App() {
     [],
   );
 
+  const openSelectionInExplorer = useCallback(
+    async (selection: ComponentSelection | null): Promise<void> => {
+      if (!project || !selection) {
+        return;
+      }
+      if (!selection.relativePath) {
+        setNotice({ type: "error", message: "This selection has no file path." });
+        return;
+      }
+
+      try {
+        const message = await requestOpenInExplorer(project.rootLabel, selection.relativePath, {
+          alwaysNewWindow: alwaysNewExplorerWindow,
+        });
+        setNotice({ type: "info", message });
+      } catch (error) {
+        setNotice({
+          type: "error",
+          message: `Open in Explorer failed: ${getErrorMessage(error)}`,
+        });
+      }
+    },
+    [project, alwaysNewExplorerWindow],
+  );
+
   const selectSourceFile = useCallback(
     (file: ScreenSourceFile) => {
-      setComponentSelection({
+      const selection: ComponentSelection = {
         screenId: file.screenId,
         relativePath: normalizePath(file.relativePath),
         nodeId: file.nodeId,
         nodeName: file.nodeName,
-      });
+      };
+      setComponentSelection(selection);
     },
     [],
   );
@@ -669,12 +719,13 @@ function App() {
       const nodeId = layer.getAttribute("data-node-id");
       const nodeName = layer.getAttribute("data-node-name") ?? "unknown";
       const relativePath = layer.getAttribute("data-relative-path");
-      setComponentSelection({
+      const selection: ComponentSelection = {
         screenId: selectedScreen.id,
         nodeId: nodeId || null,
         nodeName,
         relativePath: relativePath ? normalizePath(relativePath) : null,
-      });
+      };
+      setComponentSelection(selection);
     },
     [selectedScreen, isPanning, isSpacePressed],
   );
@@ -845,7 +896,29 @@ function App() {
                 <p><strong>Selected:</strong> {componentSelection?.screenId === selectedScreen.id ? componentSelection.nodeName : "-"}</p>
                 <p><strong>Node ID:</strong> {componentSelection?.screenId === selectedScreen.id ? (componentSelection.nodeId ?? "-") : "-"}</p>
                 <p><strong>Path:</strong> {componentSelection?.screenId === selectedScreen.id ? (componentSelection.relativePath ?? "-") : "-"}</p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={alwaysNewExplorerWindow}
+                    onChange={(event) => setAlwaysNewExplorerWindow(event.target.checked)}
+                  />
+                  {" "}Always open new Explorer window
+                </label>
                 <div className="chips">
+                  <button
+                    onClick={() =>
+                      void openSelectionInExplorer(
+                        componentSelection?.screenId === selectedScreen.id ? componentSelection : null,
+                      )
+                    }
+                    disabled={
+                      !componentSelection ||
+                      componentSelection.screenId !== selectedScreen.id ||
+                      !componentSelection.relativePath
+                    }
+                  >
+                    Open In Explorer
+                  </button>
                   <button
                     onClick={excludeSelectedComponent}
                     disabled={!componentSelection || componentSelection.screenId !== selectedScreen.id}
@@ -1140,6 +1213,46 @@ function downloadTextFile(fileName: string, text: string, mimeType: string): voi
   anchor.download = fileName;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+interface ExplorerBridgeResponse {
+  ok: boolean;
+  message: string;
+}
+
+interface OpenInExplorerOptions {
+  alwaysNewWindow?: boolean;
+}
+
+async function requestOpenInExplorer(
+  rootLabel: string,
+  relativePath: string,
+  options?: OpenInExplorerOptions,
+): Promise<string> {
+  const response = await fetch("/api/open-in-explorer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      rootLabel,
+      relativePath: normalizePath(relativePath),
+      alwaysNewWindow: Boolean(options?.alwaysNewWindow),
+    }),
+  });
+
+  let payload: ExplorerBridgeResponse | null = null;
+  try {
+    payload = (await response.json()) as ExplorerBridgeResponse;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || !payload?.ok) {
+    const fallback = `Bridge request failed (${response.status})`;
+    throw new Error(payload?.message ?? fallback);
+  }
+  return payload.message;
 }
 
 function getErrorMessage(error: unknown): string {
