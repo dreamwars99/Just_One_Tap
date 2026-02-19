@@ -11,6 +11,8 @@ export interface DirectorySnapshot {
   selectedAt: string;
   files: SourceFile[];
   directories: string[];
+  accessMode: "native" | "fallback";
+  nativeRootHandle?: FileSystemDirectoryHandle;
 }
 
 interface PickerWindow extends Window {
@@ -30,32 +32,63 @@ export async function pickDirectorySnapshot(): Promise<DirectorySnapshot | null>
   return pickWithInputFallback();
 }
 
+export async function rescanNativeDirectory(
+  rootHandle: FileSystemDirectoryHandle,
+): Promise<DirectorySnapshot> {
+  return snapshotFromNativeRoot(rootHandle);
+}
+
+export async function removeNativeFile(
+  rootHandle: FileSystemDirectoryHandle,
+  relativePath: string,
+): Promise<void> {
+  const segments = getPathSegments(relativePath);
+  if (segments.length === 0) {
+    throw new Error("Invalid file path.");
+  }
+
+  let currentDir = rootHandle;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    currentDir = await currentDir.getDirectoryHandle(segments[index]);
+  }
+
+  await currentDir.removeEntry(segments[segments.length - 1], { recursive: false });
+}
+
 async function pickWithNativeDirectoryHandle(
   picker: () => Promise<FileSystemDirectoryHandle>,
 ): Promise<DirectorySnapshot | null> {
   try {
     const root = await picker();
-    const files: SourceFile[] = [];
-    const directories = new Set<string>();
-    await walkDirectory(root, "", files, directories);
-
-    files.sort((left, right) => left.relativePath.localeCompare(right.relativePath, "ko"));
-    const sortedDirectories = [...directories].sort((left, right) =>
-      left.localeCompare(right, "ko"),
-    );
-
-    return {
-      rootLabel: root.name,
-      selectedAt: new Date().toISOString(),
-      files,
-      directories: sortedDirectories,
-    };
+    return snapshotFromNativeRoot(root);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       return null;
     }
     throw error;
   }
+}
+
+async function snapshotFromNativeRoot(
+  root: FileSystemDirectoryHandle,
+): Promise<DirectorySnapshot> {
+  const files: SourceFile[] = [];
+  const directories = new Set<string>();
+  await walkDirectory(root, "", files, directories);
+
+  files.sort((left, right) => left.relativePath.localeCompare(right.relativePath, "ko"));
+  const sortedDirectories = [...directories].sort((left, right) =>
+    left.localeCompare(right, "ko"),
+  );
+
+  return {
+    rootLabel: root.name,
+    selectedAt: new Date().toISOString(),
+    files,
+    directories: sortedDirectories,
+    accessMode: "native",
+    nativeRootHandle: root,
+  };
 }
 
 async function walkDirectory(
@@ -190,6 +223,7 @@ function pickWithInputFallback(): Promise<DirectorySnapshot | null> {
           selectedAt: new Date().toISOString(),
           files,
           directories: sortedDirectories,
+          accessMode: "fallback",
         });
       },
       { once: true },

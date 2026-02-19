@@ -1,6 +1,6 @@
 # Architecture - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
+Updated: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
 
 ## 1) 전체 구성
 
@@ -63,6 +63,7 @@ sequenceDiagram
 - `svg-inspector/*`
   - Unity 반입 전 시각 검수 및 상태 기록
   - `unity-inspection-manifest.json` 생성
+  - `svg-inspector-exclusions.json` 생성(검수 제외 상태)
 
 ## 5) Figma Export Plugin 파이프라인
 
@@ -105,11 +106,19 @@ sequenceDiagram
    - 우: Composited SVG
 5. 검수 상태 관리
    - `pending`, `approved`, `hold` + `reviewNote`
-6. 산출
+6. 컴포넌트 선택/삭제
+   - 트리 클릭/합성 클릭 공통 선택 상태 유지
+   - `Exclude`/`Restore`(비파괴)
+   - `Delete File`(네이티브 모드 전용, fallback 모드 비활성화)
+7. 자동 제외 프리셋
+   - `deviceChrome` (`status bar`, `battery`, `wifi`, `mobile signal`, `home indicator`)
+   - `keyboard`
+8. 산출
    - `unity-inspection-manifest.json`
+   - `svg-inspector-exclusions.json`
    - CSV (옵션)
 
-## 7) 조합 렌더 설계 (4차 업데이트)
+## 7) 조합 렌더 설계 (6차 업데이트 포함)
 
 경로: `svg-inspector/src/lib/composer.ts`
 
@@ -122,7 +131,12 @@ sequenceDiagram
    - `screenRootId`와 동일한 root 엔트리는 기본 제외
    - ancestor가 이미 선택되면 descendant 엔트리 가지치기
    - 가지치기 후 레이어 0건이면 root 엔트리 fallback 렌더
-4. 모드 정책
+4. 제외/선택 규칙
+   - 수동 제외(`excludedNodeIds`, `excludedPaths`) 우선 적용
+   - 프리셋 제외(`deviceChrome`, `keyboard`) 병합 적용
+   - `selectedNodeId`를 합성 뷰에 하이라이트
+   - 사용자 제외로 0건이 된 경우 fallback 금지, 안내 메시지 표시
+5. 모드 정책
    - `All`: 권장 모드
    - `Leaf`: 진단 모드
 
@@ -140,7 +154,29 @@ sequenceDiagram
 2. `screens[]` 상태/메모
 3. `files[]` 상대경로/노드 정보
 
-### 8.3 Runtime Save Schema (Game)
+### 8.3 Inspector Exclusions Schema
+
+```json
+{
+  "version": 1,
+  "generatedAt": "2026-02-19T00:00:00.000Z",
+  "sourceRoot": "figma-svg-export-2026-02-19T06-14-47-384Z",
+  "preset": {
+    "deviceChrome": true,
+    "keyboard": false
+  },
+  "screens": [
+    {
+      "screenId": "13-3321",
+      "folderPath": "Page 1/Profile",
+      "excludedNodeIds": ["12:500"],
+      "excludedPaths": ["Page 1/Profile/Battery__12-500.svg"]
+    }
+  ]
+}
+```
+
+### 8.4 Runtime Save Schema (Game)
 
 ```json
 {
@@ -162,7 +198,7 @@ sequenceDiagram
 }
 ```
 
-### 8.4 Unity Inspection Manifest Schema
+### 8.5 Unity Inspection Manifest Schema
 
 ```json
 {
@@ -204,5 +240,7 @@ sequenceDiagram
 1. 플러그인 메타 확장(`_node_layout.json`) 완료
 2. Inspector 2패널 비교(루트 SVG vs 조합 SVG) 구현 완료
 3. 조합 렌더 안정화(중복 가지치기 + root fallback) 반영 완료
-4. Unity 씬/프리팹 자동 배치 도구는 다음 단계
-
+4. 컴포넌트 선택/제외/삭제 워크플로우 구현 완료
+5. 하드삭제는 네이티브 모드(`showDirectoryPicker`)에서만 허용
+6. 제외 상태는 `svg-inspector-exclusions.json`으로 별도 관리
+7. Unity 씬/프리팹 자동 배치 도구는 다음 단계

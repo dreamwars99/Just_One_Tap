@@ -239,6 +239,16 @@ button:disabled {
   user-select: none;
 }
 
+.svg-xform.interactive {
+  pointer-events: auto;
+}
+
+.svg-xform.interactive svg,
+.svg-xform.interactive image,
+.svg-xform.interactive g {
+  pointer-events: auto;
+}
+
 .svg-xform svg {
   display: block;
   max-width: none;
@@ -330,6 +340,22 @@ button:disabled {
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.node.file:hover {
+  background: #eef7fd;
+}
+
+.node.file.selected {
+  background: #dff2ff;
+  outline: 1px solid #8ec4e4;
+}
+
+.node.file.excluded {
+  background: #f7f0f0;
 }
 
 .badge-row {
@@ -370,6 +396,37 @@ button:disabled {
   border-color: #e2aaaa;
   background: #fdeeee;
   color: #8a2f2f;
+}
+
+.badge-row em.excluded {
+  border-color: #cda96d;
+  background: #fff7e9;
+  color: #7c5c1f;
+}
+
+.preset-grid {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #32566d;
+}
+
+.preset-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.component-box {
+  border: 1px solid #d4e3ec;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fbfdff;
+}
+
+.component-box p {
+  margin: 4px 0;
+  font-size: 12px;
 }
 
 .hidden {

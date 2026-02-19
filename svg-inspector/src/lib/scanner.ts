@@ -29,6 +29,8 @@ interface ScreenDefinition {
 
 export interface ScanResult {
   inputMode: InputRootMode;
+  accessMode: DirectorySnapshot["accessMode"];
+  nativeRootHandle?: FileSystemDirectoryHandle;
   project: InspectorProject;
   sourceFiles: ScreenSourceFile[];
   filesByPath: Map<string, ScreenSourceFile>;
@@ -133,6 +135,8 @@ export function buildInspectorProject(snapshot: DirectorySnapshot): ScanResult {
 
   return {
     inputMode,
+    accessMode: snapshot.accessMode,
+    nativeRootHandle: snapshot.nativeRootHandle,
     project,
     sourceFiles,
     filesByPath,

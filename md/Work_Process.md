@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-19 (5차)
+- **Last Updated:** 2026-02-19 (6차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -114,6 +114,64 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+## 2026-02-19 (6차) - SVG Inspector 선택/제외/하드삭제 기능 반영 + 문서 동기화
+### 목표
+- 트리와 합성 뷰에서 동일 컴포넌트를 선택/동기화한다.
+- 비파괴 제외(`Exclude`/`Restore`)와 실제 파일 삭제(`Delete File`)를 분리 제공한다.
+- 하드삭제는 네이티브 폴더 권한 모드에서만 동작하게 고정한다.
+- exclusions 상태를 별도 파일(`svg-inspector-exclusions.json`)로 저장/복원 가능하게 한다.
+
+### 수행 내용
+1. SVG Inspector 기능 확장
+- `svg-inspector/src/types.ts`: `ComponentSelection`, `ExclusionPreset`, `ExclusionManifest` 등 타입 추가.
+- `svg-inspector/src/lib/exclusionState.ts` 신규 구현:
+  - exclusions manifest parse/build
+  - preset 매칭(`deviceChrome`, `keyboard`)
+  - localStorage 저장/복원
+- `svg-inspector/src/lib/fileSystem.ts` 확장:
+  - `accessMode: "native" | "fallback"` 노출
+  - 네이티브 모드 파일 삭제(`removeEntry`) 지원
+- `svg-inspector/src/lib/composer.ts` 확장:
+  - 수동 제외/프리셋 제외 필터 적용
+  - 선택 노드 하이라이트
+  - 사용자 필터로 0레이어 시 fallback 금지 + 안내 메시지
+- `svg-inspector/src/App.tsx`, `svg-inspector/src/App.css`:
+  - 트리/합성 단일 선택 동기화
+  - `Exclude`/`Restore`/`Delete File` 액션
+  - fallback 모드 하드삭제 비활성화
+  - exclusions import/export UI 연결
+
+2. 문서 업데이트(이번 요청)
+- `md/To_do.md`: 완료 항목/현재 상태/Completed 섹션에 6차 내용 추가.
+- `md/Tree.md`: `exclusionState.ts`, `svg-inspector-exclusions.json`, 6차 메모 반영.
+- `md/Architecture.md`: 선택/제외/하드삭제 플로우 및 exclusions 스키마 반영.
+- `md/Work_Process.md`: 본 6차 기록 추가(기존 기록 유지).
+
+### 검증
+- 기능 검증 기준:
+  - 트리 클릭/합성 클릭 시 동일 컴포넌트 선택 동기화.
+  - `Exclude`/`Restore` 즉시 합성 반영.
+  - fallback 모드에서 `Delete File` 비활성화.
+  - 네이티브 모드에서만 실제 파일 삭제 가능.
+- 코드 검증: `npm run lint`, `npm run build` 통과 상태 유지.
+
+### 산출물
+- `svg-inspector/src/types.ts`
+- `svg-inspector/src/lib/fileSystem.ts`
+- `svg-inspector/src/lib/scanner.ts`
+- `svg-inspector/src/lib/composer.ts`
+- `svg-inspector/src/lib/exclusionState.ts`
+- `svg-inspector/src/App.tsx`
+- `svg-inspector/src/App.css`
+- `svg-inspector/README.md`
+- `md/To_do.md`
+- `md/Tree.md`
+- `md/Architecture.md`
+- `md/Work_Process.md`
+
+### 메모
+- 사용자 질문 기준 정책 확정: 실제 하드디스크 삭제는 네이티브 모드(`showDirectoryPicker`)에서만 가능하며, fallback 모드에서는 불가/비활성화가 정상 동작이다.
 
 ## 2026-02-19 (5차) - 3차 기준 문서 복원 + 4차 업데이트 반영
 ### 목표

@@ -2,6 +2,11 @@ export type ReviewStatus = "pending" | "approved" | "hold";
 export type InputRootMode = "page-root" | "export-root";
 export type CompositeMode = "leaf" | "all";
 
+export interface ExclusionPreset {
+  deviceChrome: boolean;
+  keyboard: boolean;
+}
+
 export interface ScreenEntry {
   id: string;
   name: string;
@@ -101,4 +106,26 @@ export interface UnityManifest {
   summary: UnityManifestSummary;
   screens: UnityManifestScreen[];
   files: UnityManifestFile[];
+}
+
+export interface ScreenExclusion {
+  screenId: string;
+  folderPath: string;
+  excludedNodeIds: string[];
+  excludedPaths: string[];
+}
+
+export interface ExclusionManifest {
+  version: 1;
+  generatedAt: string;
+  sourceRoot: string;
+  preset: ExclusionPreset;
+  screens: ScreenExclusion[];
+}
+
+export interface ComponentSelection {
+  screenId: string;
+  relativePath: string | null;
+  nodeId: string | null;
+  nodeName: string;
 }

@@ -1,6 +1,6 @@
 # Project Tree - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
+Updated: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
 
 ## 1) Repository Root
 
@@ -84,6 +84,7 @@ svg-inspector/
 │     ├─ scanner.ts
 │     ├─ layout.ts
 │     ├─ composer.ts
+│     ├─ exclusionState.ts
 │     ├─ manifest.ts
 │     ├─ reviewState.ts
 │     └─ utils.ts
@@ -103,6 +104,7 @@ _node_layout.json
 figma-svg-export-*.zip
 figma-svg-export-*/              # ZIP 해제 폴더
 unity-inspection-manifest.json
+svg-inspector-exclusions.json
 components*.zip
 ```
 
@@ -119,3 +121,22 @@ components*.zip
    - `*_original.md` 기준 누락 내용 복구
    - 기존 내용을 삭제하지 않고 “업데이트” 형태로 반영
 
+## 7) 6차 업데이트 메모 (5차 대비)
+
+1. `svg-inspector/src/lib/exclusionState.ts` 신규 추가
+   - exclusions 매니페스트 parse/build
+   - preset 매칭(`deviceChrome`, `keyboard`)
+   - localStorage 저장/복원 유틸
+2. `svg-inspector/src/lib/fileSystem.ts` 확장
+   - `accessMode: native|fallback` 상태 보존
+   - 네이티브 모드 파일 삭제(`removeEntry`) 지원
+3. `svg-inspector/src/App.tsx` 확장
+   - 트리/합성 공통 선택 상태(`ComponentSelection`) 동기화
+   - `Exclude`/`Restore`/`Delete File` 액션 연결
+   - fallback 모드 하드삭제 비활성화
+4. `svg-inspector/src/lib/composer.ts` 확장
+   - 수동 제외/프리셋 제외 필터 적용
+   - 선택 노드 하이라이트 및 제외 통계 출력
+   - 사용자 필터로 0레이어일 때 fallback 금지 + 안내 메시지
+5. 신규 산출물
+   - `svg-inspector-exclusions.json`

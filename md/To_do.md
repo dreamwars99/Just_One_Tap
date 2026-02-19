@@ -1,6 +1,6 @@
 # To-Do List - Just One Tap (J_O_T)
 
-Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
+Updated: 2026-02-19 (6차, 선택/제외/하드삭제 기능 반영)
 
 ## 1) 현재 상태 요약
 - [x] Unity 기본 프로젝트 구조/에디터 툴 준비 완료
@@ -13,6 +13,8 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
   - [x] screen-root 중복 합성 제거
   - [x] 하위 레이어가 0개일 때 root fallback 렌더
 - [x] 기존 산출물 호환 유지 (`_manifest.json`, `_failed.json`, SVG 네이밍)
+- [x] 컴포넌트 선택/제외 워크플로우 반영 (트리 <-> 합성 뷰 단일 선택 동기화)
+- [x] 비파괴 제외 + 하드삭제(네이티브 모드 전용) + exclusions 매니페스트 지원
 
 ## 2) Figma 추출 파이프라인
 - [x] `_node_layout.json` 스키마 1차 반영
@@ -36,12 +38,19 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
   - [x] screen-root 중복 렌더 제거
   - [x] zero-layer 시 screen-root fallback
 - [x] 파일 트리 + `ROOT/USED/UNUSED/FAILED` 배지 표시
+- [x] 트리/합성 뷰 단일 선택 모델(`ComponentSelection`) 동기화
+- [x] `Exclude` / `Restore`(비파괴) 즉시 반영
+- [x] `Delete File` 하드삭제 지원 (네이티브 모드 전용, fallback 비활성화)
+- [x] 자동 제외 프리셋(`deviceChrome`, `keyboard`) 지원
+- [x] `svg-inspector-exclusions.json` 저장/불러오기 + localStorage 복원
+- [x] 사용자 필터로 레이어 0건 시 안내 메시지 표시 (`All layers excluded by current filters.`)
 - [ ] overlay / opacity 슬라이더 / diff 보조 표시
 - [ ] 대용량(3k+ SVG) 성능 최적화
 
 ## 4) Unity 연동
 - [ ] `unity-inspection-manifest.json`를 읽어 후속 자동화 입력으로 연결
 - [ ] `_node_layout.json` 기준 좌표/계층 매핑 설계 확정
+- [ ] `svg-inspector-exclusions.json`를 Unity 후속 자동화 입력 정책에 반영
 - [ ] 씬/프리팹 자동 배치 도구 초안 작성
 
 ## 5) 재추출 권장 옵션 (현재 기준)
@@ -55,6 +64,7 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
 - [x] `.env`는 Git 추적 제외
 - [x] Figma 산출물(`Page 1/`, `_manifest.json`, `_failed.json`, ZIP) 로컬 산출물로 관리
 - [x] `figma-svg-export-*` 폴더 산출물 Git 제외 유지
+- [x] `svg-inspector-exclusions.json` 로컬 검수 산출물로 관리
 
 ---
 
@@ -75,7 +85,7 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
 - Project: Just One Tap (J_O_T)
 - Phase: Phase 0 Foundation
 - Engine: Unity 2022.3 LTS (2D URP)
-- Last Sync: 2026-02-19 (4차, 3차 복원 + 조합 렌더 안정화 반영)
+- Last Sync: 2026-02-19 (6차, 선택/제외/하드삭제 + exclusions 반영)
 
 ---
 
@@ -217,6 +227,15 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
 
 # Completed (완료된 작업)
 
+### 2026-02-19 (6차)
+- SVG Inspector 선택/삭제 기능 1차 구현
+  - 트리/합성 뷰 단일 선택 동기화
+  - `Exclude`/`Restore` 비파괴 제외 동작 추가
+  - `Delete File` 하드삭제 추가 (네이티브 모드 전용)
+  - 자동 제외 프리셋(`deviceChrome`, `keyboard`) 추가
+  - `svg-inspector-exclusions.json` import/export + localStorage 복원
+  - 사용자 제외로 0레이어 시 fallback 대신 안내 메시지 출력
+
 ### 2026-02-19 (4차)
 - SVG Inspector 조합 렌더 안정화
   - 부모/자식 중복 레이어 가지치기 로직 추가
@@ -243,4 +262,3 @@ Updated: 2026-02-19 (4차, 3차 기준 복원 + 업데이트)
 ### 2026-02-09
 - `ProjectSetupTool`, `PackageInstaller` 구현
 - Firebase SDK 수동 임포트 완료
-

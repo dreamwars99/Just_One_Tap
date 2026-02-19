@@ -1,10 +1,12 @@
 import type {
+  ExclusionPreset,
   FailedExportEntry,
   InputRootMode,
   NodeLayoutBBox,
   NodeLayoutEntry,
   ScreenEntry,
 } from "../types";
+import { matchesPresetForEntry } from "./exclusionState";
 import type { ScreenLayoutSelection } from "./layout";
 import type { ScreenSourceFile } from "./scanner";
 import { clamp, normalizePath } from "./utils";
@@ -23,11 +25,13 @@ interface ParsedLayerSvg {
 interface RenderLayer {
   entry: NodeLayoutEntry;
   parsed: ParsedLayerSvg;
+  matchedPath: string;
 }
 
 export interface CompositeStats {
   totalEntries: number;
   renderedEntries: number;
+  excludedEntries: number;
   usedFiles: number;
   missingFiles: number;
   parseFailures: number;
@@ -49,12 +53,26 @@ interface BuildCompositeParams {
   filesByPath: Map<string, ScreenSourceFile>;
   failedEntries: FailedExportEntry[];
   inputMode: InputRootMode;
+  excludedNodeIds: Set<string>;
+  excludedPaths: Set<string>;
+  preset: ExclusionPreset;
+  selectedNodeId: string | null;
 }
 
 export async function buildCompositeMarkup(
   params: BuildCompositeParams,
 ): Promise<CompositeRenderResult> {
-  const { screen, selection, filesByPath, failedEntries, inputMode } = params;
+  const {
+    screen,
+    selection,
+    filesByPath,
+    failedEntries,
+    inputMode,
+    excludedNodeIds,
+    excludedPaths,
+    preset,
+    selectedNodeId,
+  } = params;
   const issues = [...selection.issues];
   const missingPaths: string[] = [];
   const usedPaths = new Set<string>();
@@ -75,6 +93,7 @@ export async function buildCompositeMarkup(
       stats: {
         totalEntries: 0,
         renderedEntries: 0,
+        excludedEntries: 0,
         usedFiles: 0,
         missingFiles: 0,
         parseFailures: 0,
@@ -94,6 +113,7 @@ export async function buildCompositeMarkup(
       stats: {
         totalEntries: selection.entries.length,
         renderedEntries: 0,
+        excludedEntries: 0,
         usedFiles: 0,
         missingFiles: 0,
         parseFailures: 0,
@@ -106,6 +126,9 @@ export async function buildCompositeMarkup(
   let skippedRootEntries = 0;
   let prunedByAncestor = 0;
   let usedRootFallback = false;
+  let excludedEntries = 0;
+  let nonRootCandidates = 0;
+  let nonRootExcludedByUserFilters = 0;
 
   const selectionOrder = [...selection.entries].sort((left, right) => {
     const depthDiff = left.depth - right.depth;
@@ -122,9 +145,16 @@ export async function buildCompositeMarkup(
       excludedRootEntries.push(entry);
       continue;
     }
+    nonRootCandidates += 1;
 
     if (hasSelectedAncestor(entry.parentId, entriesById, selectedAncestorIds)) {
       prunedByAncestor += 1;
+      continue;
+    }
+
+    if (excludedNodeIds.has(entry.nodeId) || matchesPresetForEntry(entry, null, preset)) {
+      excludedEntries += 1;
+      nonRootExcludedByUserFilters += 1;
       continue;
     }
 
@@ -135,6 +165,12 @@ export async function buildCompositeMarkup(
     }
 
     const matchedPath = matchEntryFilePath(entry, filesByPath);
+    if (isPathExcluded(entry, matchedPath, excludedPaths)) {
+      excludedEntries += 1;
+      nonRootExcludedByUserFilters += 1;
+      continue;
+    }
+
     if (!matchedPath) {
       const fallbackPath = normalizePath(entry.zipPath || entry.relativePath);
       missingPaths.push(fallbackPath);
@@ -156,7 +192,7 @@ export async function buildCompositeMarkup(
         loadCache.set(matchedPath, parsedPromise);
       }
       const parsed = await parsedPromise;
-      renderLayers.push({ entry, parsed });
+      renderLayers.push({ entry, parsed, matchedPath });
       usedPaths.add(matchedPath);
       selectedAncestorIds.add(entry.nodeId);
     } catch (error) {
@@ -165,7 +201,10 @@ export async function buildCompositeMarkup(
     }
   }
 
-  if (renderLayers.length === 0 && excludedRootEntries.length > 0) {
+  const allNonRootExcluded =
+    nonRootCandidates > 0 && nonRootCandidates === nonRootExcludedByUserFilters;
+
+  if (renderLayers.length === 0 && excludedRootEntries.length > 0 && !allNonRootExcluded) {
     const orderedRoots = [...excludedRootEntries].sort((left, right) => left.zIndex - right.zIndex);
     for (const entry of orderedRoots) {
       const bbox = entry.bbox;
@@ -196,7 +235,7 @@ export async function buildCompositeMarkup(
           loadCache.set(matchedPath, parsedPromise);
         }
         const parsed = await parsedPromise;
-        renderLayers.push({ entry, parsed });
+        renderLayers.push({ entry, parsed, matchedPath });
         usedPaths.add(matchedPath);
         usedRootFallback = true;
         break;
@@ -219,6 +258,9 @@ export async function buildCompositeMarkup(
       "Used screen-root fallback because no child layer could be rendered for this screen.",
     );
   }
+  if (allNonRootExcluded) {
+    issues.push("All layers excluded by current filters.");
+  }
   if (prunedByAncestor > 0) {
     issues.push(
       `Pruned ${prunedByAncestor} descendant export entr${
@@ -229,7 +271,7 @@ export async function buildCompositeMarkup(
 
   const layers = renderLayers
     .sort((left, right) => left.entry.zIndex - right.entry.zIndex)
-    .map((item) => buildLayerMarkup(item.entry, item.parsed, canvas));
+    .map((item) => buildLayerMarkup(item.entry, item.parsed, item.matchedPath, canvas, selectedNodeId));
 
   if (layers.length === 0) {
     return {
@@ -241,6 +283,7 @@ export async function buildCompositeMarkup(
       stats: {
         totalEntries: selection.entries.length,
         renderedEntries: 0,
+        excludedEntries,
         usedFiles: usedPaths.size,
         missingFiles: uniqueSorted(missingPaths).length,
         parseFailures,
@@ -271,6 +314,7 @@ export async function buildCompositeMarkup(
     stats: {
       totalEntries: selection.entries.length,
       renderedEntries: layers.length,
+      excludedEntries,
       usedFiles: usedPaths.size,
       missingFiles: uniqueSorted(missingPaths).length,
       parseFailures,
@@ -326,6 +370,25 @@ function matchEntryFilePath(
   }
 
   return null;
+}
+
+function isPathExcluded(
+  entry: NodeLayoutEntry,
+  matchedPath: string | null,
+  excludedPaths: Set<string>,
+): boolean {
+  if (matchedPath && excludedPaths.has(normalizePath(matchedPath))) {
+    return true;
+  }
+  const zipPath = normalizePath(entry.zipPath);
+  if (zipPath && excludedPaths.has(zipPath)) {
+    return true;
+  }
+  const relativePath = normalizePath(entry.relativePath);
+  if (relativePath && excludedPaths.has(relativePath)) {
+    return true;
+  }
+  return false;
 }
 
 function buildEntryMap(entries: NodeLayoutEntry[]): Map<string, NodeLayoutEntry> {
@@ -465,7 +528,9 @@ function parseLength(value: string | null): number {
 function buildLayerMarkup(
   entry: NodeLayoutEntry,
   parsed: ParsedLayerSvg,
+  matchedPath: string,
   canvas: ViewBoxRect,
+  selectedNodeId: string | null,
 ): string {
   const bbox = entry.bbox;
   if (!bbox) {
@@ -474,10 +539,17 @@ function buildLayerMarkup(
 
   const x = bbox.x - canvas.x;
   const y = bbox.y - canvas.y;
+  const selectedOutline =
+    selectedNodeId && entry.nodeId === selectedNodeId
+      ? `<rect x="${formatNumber(x)}" y="${formatNumber(y)}" width="${formatNumber(
+          bbox.width,
+        )}" height="${formatNumber(bbox.height)}" fill="none" stroke="#0d95c7" stroke-width="2" vector-effect="non-scaling-stroke" />`
+      : "";
 
   return [
     `<g data-node-id="${escapeAttribute(entry.nodeId)}"`,
     ` data-node-name="${escapeAttribute(entry.nodeName)}"`,
+    ` data-relative-path="${escapeAttribute(matchedPath)}"`,
     ` data-z-index="${entry.zIndex}">`,
     `<image x="${formatNumber(x)}"`,
     ` y="${formatNumber(y)}"`,
@@ -486,6 +558,7 @@ function buildLayerMarkup(
     ` preserveAspectRatio="none"`,
     ` href="${escapeAttribute(parsed.dataUri)}"`,
     ` xlink:href="${escapeAttribute(parsed.dataUri)}" />`,
+    selectedOutline,
     "</g>",
   ].join("");
 }
