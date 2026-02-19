@@ -91,7 +91,7 @@ function App() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<ScreenFilter>("all");
   const [bg, setBg] = useState<PreviewBg>("checker");
-  const [compositeMode, setCompositeMode] = useState<CompositeMode>("leaf");
+  const [compositeMode, setCompositeMode] = useState<CompositeMode>("all");
   const [rootPreview, setRootPreview] = useState<PreviewState>(EMPTY_PREVIEW);
   const [compositePreview, setCompositePreview] = useState<CompositeState>(EMPTY_COMPOSITE);
   const [viewport, setViewport] = useState<Viewport>(DEFAULT_VIEWPORT);
@@ -261,7 +261,7 @@ function App() {
       setSelectedScreenId(hydratedProject.screens[0]?.id ?? null);
       setSearchKeyword("");
       setStatusFilter("all");
-      setCompositeMode("leaf");
+      setCompositeMode("all");
       setViewport(DEFAULT_VIEWPORT);
 
       setNotice({
@@ -402,8 +402,8 @@ function App() {
             <button onClick={() => setViewport((v) => ({ ...v, zoom: clamp(v.zoom * 1.15, VIEWPORT_MIN, VIEWPORT_MAX) }))} disabled={!hasPreview}>+</button>
             <button onClick={() => setViewport(DEFAULT_VIEWPORT)} disabled={!hasPreview}>Reset</button>
             <button className={bg === "checker" ? "active" : ""} onClick={() => setBg((v) => v === "checker" ? "white" : "checker")}>BG</button>
-            <button className={compositeMode === "leaf" ? "active" : ""} onClick={() => setCompositeMode("leaf")} disabled={!aux.layoutManifest}>Leaf (recommended)</button>
-            <button className={compositeMode === "all" ? "active" : ""} onClick={() => setCompositeMode("all")} disabled={!aux.layoutManifest}>All (diagnostic)</button>
+            <button className={compositeMode === "all" ? "active" : ""} onClick={() => setCompositeMode("all")} disabled={!aux.layoutManifest}>All (recommended)</button>
+            <button className={compositeMode === "leaf" ? "active" : ""} onClick={() => setCompositeMode("leaf")} disabled={!aux.layoutManifest}>Leaf (diagnostic)</button>
           </div>
           <p className="hint">Pan: Space + Left Drag. Mouse wheel zoom disabled.</p>
           <div className="compare-grid">
@@ -510,13 +510,21 @@ async function loadCompositePreview(scan: ScanResult, aux: LoadedAuxData, screen
   return {
     loading: false,
     markup: result.markup,
-    error: result.markup ? null : result.issues[0] ?? "Composite render failed.",
+    error: result.markup ? null : pickCompositeError(result.issues),
     issues: result.issues,
     stats: result.stats,
     usedPaths: result.usedPaths,
     failedPaths: result.failedPaths,
     missingPaths: result.missingPaths,
   };
+}
+
+function pickCompositeError(issues: string[]): string {
+  const critical = issues.find((issue) => /no layers could|failed|missing svg file|parse failed/i.test(issue));
+  if (critical) {
+    return critical;
+  }
+  return issues[issues.length - 1] ?? "Composite render failed.";
 }
 
 function parseSvg(raw: string): { markup: string | null; error: string | null } {

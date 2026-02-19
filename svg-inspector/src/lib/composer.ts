@@ -20,6 +20,11 @@ interface ParsedLayerSvg {
   dataUri: string;
 }
 
+interface RenderLayer {
+  entry: NodeLayoutEntry;
+  parsed: ParsedLayerSvg;
+}
+
 export interface CompositeStats {
   totalEntries: number;
   renderedEntries: number;
@@ -54,9 +59,11 @@ export async function buildCompositeMarkup(
   const missingPaths: string[] = [];
   const usedPaths = new Set<string>();
   const loadCache = new Map<string, Promise<ParsedLayerSvg>>();
-  const layers: string[] = [];
+  const renderLayers: RenderLayer[] = [];
+  const excludedRootEntries: NodeLayoutEntry[] = [];
 
   const relevantFailedPaths = collectFailedPathsForScreen(failedEntries, screen, inputMode);
+  const entriesById = buildEntryMap(selection.entries);
 
   if (selection.entries.length === 0) {
     return {
@@ -96,8 +103,31 @@ export async function buildCompositeMarkup(
   }
 
   let parseFailures = 0;
+  let skippedRootEntries = 0;
+  let prunedByAncestor = 0;
+  let usedRootFallback = false;
 
-  for (const entry of selection.entries) {
+  const selectionOrder = [...selection.entries].sort((left, right) => {
+    const depthDiff = left.depth - right.depth;
+    if (depthDiff !== 0) {
+      return depthDiff;
+    }
+    return left.zIndex - right.zIndex;
+  });
+  const selectedAncestorIds = new Set<string>();
+
+  for (const entry of selectionOrder) {
+    if (entry.nodeId === entry.screenRootId) {
+      skippedRootEntries += 1;
+      excludedRootEntries.push(entry);
+      continue;
+    }
+
+    if (hasSelectedAncestor(entry.parentId, entriesById, selectedAncestorIds)) {
+      prunedByAncestor += 1;
+      continue;
+    }
+
     const bbox = entry.bbox;
     if (!bbox) {
       issues.push(`Missing bbox for node ${entry.nodeId} (${entry.nodeName}).`);
@@ -112,7 +142,6 @@ export async function buildCompositeMarkup(
       continue;
     }
 
-    usedPaths.add(matchedPath);
     const source = filesByPath.get(matchedPath);
     if (!source) {
       missingPaths.push(matchedPath);
@@ -127,12 +156,80 @@ export async function buildCompositeMarkup(
         loadCache.set(matchedPath, parsedPromise);
       }
       const parsed = await parsedPromise;
-      layers.push(buildLayerMarkup(entry, parsed, canvas));
+      renderLayers.push({ entry, parsed });
+      usedPaths.add(matchedPath);
+      selectedAncestorIds.add(entry.nodeId);
     } catch (error) {
       parseFailures += 1;
       issues.push(`SVG parse failed (${matchedPath}): ${toErrorMessage(error)}`);
     }
   }
+
+  if (renderLayers.length === 0 && excludedRootEntries.length > 0) {
+    const orderedRoots = [...excludedRootEntries].sort((left, right) => left.zIndex - right.zIndex);
+    for (const entry of orderedRoots) {
+      const bbox = entry.bbox;
+      if (!bbox) {
+        issues.push(`Missing bbox for screen-root node ${entry.nodeId} (${entry.nodeName}).`);
+        continue;
+      }
+
+      const matchedPath = matchEntryFilePath(entry, filesByPath);
+      if (!matchedPath) {
+        const fallbackPath = normalizePath(entry.zipPath || entry.relativePath);
+        missingPaths.push(fallbackPath);
+        issues.push(`Missing SVG file for screen-root fallback ${entry.nodeId}: ${fallbackPath}`);
+        continue;
+      }
+
+      const source = filesByPath.get(matchedPath);
+      if (!source) {
+        missingPaths.push(matchedPath);
+        issues.push(`Source file disappeared during root fallback: ${matchedPath}`);
+        continue;
+      }
+
+      try {
+        let parsedPromise = loadCache.get(matchedPath);
+        if (!parsedPromise) {
+          parsedPromise = source.loadText().then((text) => parseLayerSvg(text, bbox));
+          loadCache.set(matchedPath, parsedPromise);
+        }
+        const parsed = await parsedPromise;
+        renderLayers.push({ entry, parsed });
+        usedPaths.add(matchedPath);
+        usedRootFallback = true;
+        break;
+      } catch (error) {
+        parseFailures += 1;
+        issues.push(`SVG parse failed during root fallback (${matchedPath}): ${toErrorMessage(error)}`);
+      }
+    }
+  }
+
+  if (skippedRootEntries > 0 && !usedRootFallback) {
+    issues.push(
+      `Excluded ${skippedRootEntries} screen-root export entr${
+        skippedRootEntries === 1 ? "y" : "ies"
+      } to avoid full-screen duplication.`,
+    );
+  }
+  if (usedRootFallback) {
+    issues.push(
+      "Used screen-root fallback because no child layer could be rendered for this screen.",
+    );
+  }
+  if (prunedByAncestor > 0) {
+    issues.push(
+      `Pruned ${prunedByAncestor} descendant export entr${
+        prunedByAncestor === 1 ? "y" : "ies"
+      } because ancestor exports already cover those subtrees.`,
+    );
+  }
+
+  const layers = renderLayers
+    .sort((left, right) => left.entry.zIndex - right.entry.zIndex)
+    .map((item) => buildLayerMarkup(item.entry, item.parsed, canvas));
 
   if (layers.length === 0) {
     return {
@@ -229,6 +326,37 @@ function matchEntryFilePath(
   }
 
   return null;
+}
+
+function buildEntryMap(entries: NodeLayoutEntry[]): Map<string, NodeLayoutEntry> {
+  const byId = new Map<string, NodeLayoutEntry>();
+  for (const entry of entries) {
+    byId.set(entry.nodeId, entry);
+  }
+  return byId;
+}
+
+function hasSelectedAncestor(
+  parentId: string | null,
+  entriesById: Map<string, NodeLayoutEntry>,
+  selectedIds: Set<string>,
+): boolean {
+  const visited = new Set<string>();
+  let current = parentId;
+
+  while (current) {
+    if (selectedIds.has(current)) {
+      return true;
+    }
+    if (visited.has(current)) {
+      return false;
+    }
+    visited.add(current);
+    const parent = entriesById.get(current);
+    current = parent?.parentId ?? null;
+  }
+
+  return false;
 }
 
 function computeCanvasRect(

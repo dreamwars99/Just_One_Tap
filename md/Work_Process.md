@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-19 (4차)
+- **Last Updated:** 2026-02-19 (5차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -114,6 +114,48 @@ Assets/
 ## 📅 4. Development Log (개발 기록)
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
+
+## 2026-02-19 (5차) - 3차 기준 문서 복원 + 4차 업데이트 반영
+### 목표
+- `Architecture_original.md`, `tree_original.md`, `To_do_original.md`에 남아 있던 3차 기준 내용을 복구한다.
+- 현재 구현 상태(조합 렌더 안정화, 모드 정책 변경)를 기존 문서를 지우지 않는 방식으로 업데이트한다.
+
+### 수행 내용
+1. 원본/현재 문서 비교 및 복원 기준 확정
+- `md/Architecture_original.md`, `md/tree_original.md`, `md/To_do_original.md`를 기준선으로 확인.
+- 기존 `md/Architecture.md`, `md/Tree.md`, `md/To_do.md`의 중복/깨진 블록을 정리하고 3차 기준 내용 복원.
+
+2. 최신 구현 상태 업데이트 반영
+- `md/Architecture.md`:
+  - Core Loop 섹션 복원.
+  - Inspector 조합 렌더 설계(ancestor 가지치기, screen-root 제외, zero-layer root fallback) 추가.
+  - 모드 정책을 `All` 권장 / `Leaf` 진단으로 명시.
+- `md/Tree.md`:
+  - 실제 구조 기준으로 트리 재정리.
+  - `svg-inspector` 최신 파일(`layout.ts`, `composer.ts`) 반영.
+  - 4차 변경 메모 섹션 추가.
+- `md/To_do.md`:
+  - 3차 기준 TODO/Phase/Completed 흐름 복원.
+  - 조합 렌더 안정화(중복 제거, root fallback) 완료 항목 업데이트.
+
+3. 합성 엔진 안정화 반영 상태를 개발기록에 연결
+- `svg-inspector/src/lib/composer.ts`: 부모/자식 중복 렌더 제거, root 제외, zero-layer fallback 적용.
+- `svg-inspector/src/App.tsx`: 합성 모드 운영/오류 메시지 표시 개선.
+- `svg-inspector/src/lib/layout.ts`: 모드 경고 정리.
+- `svg-inspector/README.md`: 최신 합성 규칙 문서화.
+
+### 검증
+- 문서 파일이 기존 기록을 삭제하지 않고 “업데이트” 형태로 반영되었는지 diff 확인.
+- `svg-inspector` 기준 `npm run build`, `npm run lint` 통과 상태 유지.
+
+### 산출물
+- `md/Architecture.md`
+- `md/Tree.md`
+- `md/To_do.md`
+- `md/Work_Process.md`
+
+### 메모
+- 문서 갱신 원칙 재확인: 기존 기록은 보존하고, 최신 변경은 상단에 누적 기록한다.
 
 ## 2026-02-19 (4차) - SVG Inspector 합성 렌더 안정화
 ### 목표

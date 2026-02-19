@@ -36,12 +36,11 @@ npm run lint
 ```
 
 ## Composite mode
-1. `Leaf`: render `isLeaf=true` entries only (default)
-2. `All`: render all matched layout entries
+1. `All`: recommended. Excludes the screen-root SVG and prunes descendant duplicates when an ancestor export already covers the subtree. If that leaves zero renderable layers, it automatically falls back to the screen-root export.
+2. `Leaf`: diagnostic mode that renders `isLeaf=true` entries only.
 
 ## File tree badges
 1. `ROOT`: selected screen root SVG
 2. `USED`: used by current composite result
 3. `UNUSED`: present in screen folder but not used in current composite mode
 4. `FAILED`: listed in `_failed.json` for the current screen
-

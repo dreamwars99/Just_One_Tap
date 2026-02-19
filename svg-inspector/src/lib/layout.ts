@@ -122,11 +122,6 @@ export function selectScreenLayout(
   if (mode === "leaf" && filtered.length === 0) {
     issues.push("No leaf entries found in this screen layout.");
   }
-  if (mode === "all" && selected.some((entry) => !entry.isLeaf)) {
-    issues.push(
-      "All mode includes parent and child exports together, so overlap differences from root SVG are expected.",
-    );
-  }
 
   return {
     entries: [...filtered].sort((left, right) => left.zIndex - right.zIndex),
