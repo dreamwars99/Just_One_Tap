@@ -297,5 +297,3 @@ Use code with caution.
 1. `screens`에는 화면별 검수 필수 필드를 넣는다.
 2. `files`에는 `screenId`, `relativePath`, `nodeId`, `nodeName`을 넣는다.
 3. 파일명 `X__13-3318.svg`는 `nodeId: 13:3318`로 변환하고 실패 시 `null`로 둔다.
-
-
