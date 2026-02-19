@@ -4,7 +4,7 @@
 - **Editor:** Unity Tech Lead & PM
 - **Unity Version:** 2022.3.x LTS
 - **Platform:** Android (Portrait / 1080x1920)
-- **Last Updated:** 2026-02-19 (8차)
+- **Last Updated:** 2026-02-19 (2차)
 
 ## 📌 1. Development Environment (개발 환경 상세)
 이 프로젝트를 이어받는 AI/개발자는 아래 설정을 필수로 확인해야 합니다.
@@ -115,6 +115,57 @@ Assets/
 
 > **정리 원칙:** 최신 기록은 항상 위에 배치합니다.
 
+### 2026-02-19 (2차) - SVG Inspector(외부 검수 앱) 구축 및 검수 파이프라인 분리
+**[목표]** Unity에 SVG를 투입하기 전, 추출 산출물을 빠르게 확인할 수 있는 독립 검수 앱을 루트 레벨에 구축하고, 검수 결과를 Unity 후속 자동화 입력(JSON)으로 표준화함.
+
+#### 구현 내용
+- **독립 앱 신규 생성**: `svg-inspector/` (Unity `Assets/`와 분리).
+  - 스택: Vite + React + TypeScript.
+  - 실행: `npm run dev` 로컬 서버.
+- **입력/스캔 로직 구현**
+  - `showDirectoryPicker()` 우선, 미지원 환경은 `input[webkitdirectory]` fallback.
+  - 화면(Screen) 판정: 선택 루트 하위 1-depth 폴더.
+  - root SVG 판정:
+    - 우선: `<screenName>__*.svg`
+    - fallback: 화면 폴더 직속 첫 SVG.
+  - 노드 ID 파싱 규칙: `X__13-3318.svg -> 13:3318`.
+- **검수 UI 구현**
+  - 좌측: 화면 목록, 검색, 상태 필터(전체/승인/보류/대기).
+  - 중앙: root SVG 미리보기 + 줌/팬 + 배경 토글(흰색/체커).
+  - 우측: 화면 메타, 상태 버튼, 메모 입력, 이슈 목록.
+  - 이슈 처리: root 누락/파싱 실패/빈 폴더를 warning으로 표기하고 앱은 중단하지 않음.
+- **검수 데이터 입출력 구현**
+  - 매니페스트 출력: `unity-inspection-manifest.json`.
+  - 매니페스트 불러오기(import) 지원.
+  - CSV 내보내기(검수 리포트용) 지원.
+  - localStorage 자동 저장/복원 지원.
+
+#### 코드/파일 반영
+- `svg-inspector/src/types.ts`: InspectorProject/ScreenEntry/UnityManifest 타입 정의.
+- `svg-inspector/src/lib/fileSystem.ts`: 폴더 선택/재귀 스캔 어댑터.
+- `svg-inspector/src/lib/scanner.ts`: 화면 판정, root SVG 선택, source file 인덱싱.
+- `svg-inspector/src/lib/manifest.ts`: 매니페스트 직렬화/역직렬화/CSV 생성.
+- `svg-inspector/src/lib/reviewState.ts`: localStorage 상태 저장/복원.
+- `svg-inspector/src/lib/utils.ts`: 경로 정규화, nodeId 파싱, 해시 유틸.
+- `svg-inspector/src/App.tsx`, `svg-inspector/src/App.css`, `svg-inspector/src/index.css`: 메인 UI 및 상호작용 구현.
+- `svg-inspector/README.md`: 실행법/규칙/출력 문서화.
+
+#### 검증 결과
+- `npm run build`: 성공.
+- `npm run lint`: 성공.
+- 브라우저 fallback 고려: `showDirectoryPicker` 미지원 시 `webkitdirectory` 동작하도록 구현.
+
+#### 문서 동기화
+- `md/ai_human_discuss.md`: "SVG 검수 앱 방향 정리 (2026-02-19)" 섹션 추가.
+- `md/Tree.md`: 루트 구조에 `svg-inspector/` 반영.
+- `md/Architecture.md`: External Inspection Pipeline 및 Manifest Schema 반영.
+- `md/To_do.md`: 검수 앱 완료 항목 및 Unity 후속 TODO 반영.
+- `md/Work_Process.md`: 본 2차 기록 추가 및 Last Updated 갱신.
+
+#### 현재 상태
+- Figma 추출(플러그인) + 외부 검수(SVG Inspector) + Unity 전달(JSON Manifest)까지 파이프라인 1차 완성.
+- 다음 핵심 과제는 `unity-inspection-manifest.json`을 입력으로 받는 Unity 자동 배치/생성 툴 연결.
+
 ### 2026-02-19 (1차) - Figma 전체 트리 SVG 추출 플러그인 구현 및 검증
 **[목표]** Figma 디자인을 수동 노가다 없이 트리 전체 기준으로 SVG 추출하기 위해 개발 플러그인을 직접 구현하고, 실제 파일에서 추출 검증 후 문서/보안 설정을 동기화함.
 
@@ -143,7 +194,7 @@ Assets/
 - `md/To_do.md`: Figma 추출 파이프라인 완료 및 후속 TODO(실패 항목 후처리) 반영.
 - `md/Tree.md`: 실제 구조 + Figma 플러그인 폴더/로컬 산출물 구조 반영.
 - `md/Architecture.md`: Editor/Tooling + Figma Export Pipeline 아키텍처 반영.
-- `md/Work_Process.md`: 본 8차 기록 추가 및 Last Updated 갱신.
+- `md/Work_Process.md`: 본 1차 기록 추가 및 Last Updated 갱신.
 
 ---
 

@@ -24,7 +24,7 @@
 - **Project:** Just One Tap (J_O_T)
 - **Phase:** 🛑 Phase 0: Foundation
 - **Engine:** Unity 2022.3 LTS (2D URP)
-- **Last Sync:** 2026-02-19 (Figma SVG Export Plugin/문서 동기화 반영)
+- **Last Sync:** 2026-02-19 (2차, SVG Inspector 반영)
 
 ---
 
@@ -70,7 +70,11 @@
 - [ ] **리소스 임포트 (Figma/에셋)**
     - [x] Figma 전체 트리 SVG 추출용 플러그인 개발 완료 (`figma-plugin/export-all-svg`).
     - [x] `all-pages` 기준 1회 추출 검증 완료: `totalTargets=4104`, `exported=3302`, `failed=802` (`_manifest.json` 기준).
+    - [x] Unity 외부 검수 앱 구축 완료 (`svg-inspector/`, Vite + React + TS).
+    - [x] 화면별(root SVG 우선) 검수/상태기록/메모/매니페스트(`unity-inspection-manifest.json`) 출력 기능 구현 완료.
+    - [x] 매니페스트 import/export + 로컬 상태 복원(localStorage) + CSV 내보내기 구현 완료.
     - [ ] SVG 산출물 정리 후 `_Project/Art/Icons` 또는 Unity UI 전용 폴더로 이동/재분류.
+    - [ ] `unity-inspection-manifest.json` 기준 Unity 후속 자동배치 툴 입력 연결 테스트.
     - [ ] 실패 802건 후처리 정책 결정 (스킵 유지 / leaf-only 재추출 / PNG fallback).
     - [ ] 폰트: Jua 또는 프로젝트 지정 폰트 → TextMeshPro SDF 생성 → `_Project/Art/Fonts` 또는 TMP 기본 경로.
 
@@ -269,7 +273,26 @@
 
 # ✅ Completed (완료된 작업)
 
-### 2026-02-19
+### 2026-02-19 (2차)
+- **SVG Inspector (Unity 외부 검수 앱) 구축 완료**
+  - 신규 폴더: `svg-inspector/`.
+  - 런타임: Vite + React + TypeScript 기반 로컬 웹앱.
+  - 기능:
+    - 폴더 선택(`showDirectoryPicker` + `webkitdirectory` fallback).
+    - 화면 판정: 선택 루트의 1-depth 폴더 기준.
+    - root SVG 판정: `<screenName>__*.svg` 우선, 없으면 화면 폴더 직속 첫 SVG.
+    - 검수 상태(`pending/approved/hold`) + 메모 입력.
+    - 이슈 표시(루트 누락, 파싱 실패, 빈 폴더) 및 앱 연속 동작.
+    - `unity-inspection-manifest.json` 저장/불러오기.
+    - CSV 내보내기 및 localStorage 자동 복원.
+  - 검증:
+    - `npm run build` 성공.
+    - `npm run lint` 성공.
+  - 문서 동기화:
+    - `md/ai_human_discuss.md` 검수 앱 방향 섹션 추가.
+    - `md/Tree.md`, `md/Architecture.md`, `md/Work_Process.md` 갱신.
+
+### 2026-02-19 (1차)
 - **Figma SVG Export Plugin 구현 및 추출 검증 완료**
   - `figma-plugin/export-all-svg/manifest.json`, `code.js`, `ui.html`, `README.md` 신규 추가.
   - 플러그인 기능: 트리 전체 재귀 추적, 노드별 SVG export, ZIP 다운로드, `_manifest.json`/`_failed.json` 생성.
@@ -309,4 +332,4 @@
 
 ---
 
-**문서 버전:** 2026-02-19 — Figma SVG Export Plugin 및 추출 검증 상태 반영.
+**문서 버전:** 2026-02-19 (2차) — SVG Inspector 반영 및 구조 동기화.
