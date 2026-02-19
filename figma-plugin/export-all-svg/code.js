@@ -28,6 +28,8 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
+const SCREEN_FOLDER_FALLBACK = "_screen";
+
 function sanitizeSegment(name) {
   const safe = String(name || "")
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
@@ -41,8 +43,139 @@ function isContainerNode(node) {
   return "children" in node && Array.isArray(node.children);
 }
 
+function isPageNode(node) {
+  return !!node && node.type === "PAGE";
+}
+
 function isExportableNode(node) {
   return typeof node.exportAsync === "function";
+}
+
+function getPageNode(node) {
+  let current = node;
+  while (current && !isPageNode(current)) {
+    current = current.parent;
+  }
+  return isPageNode(current) ? current : null;
+}
+
+function getScreenRootNode(node, pageNode) {
+  if (!node) {
+    return null;
+  }
+  if (!pageNode) {
+    return node;
+  }
+
+  let current = node;
+  while (current.parent && current.parent !== pageNode && !isPageNode(current.parent)) {
+    current = current.parent;
+  }
+  return current;
+}
+
+function distanceFromAncestor(node, ancestor) {
+  if (!node || !ancestor) {
+    return 0;
+  }
+
+  let depth = 0;
+  let current = node;
+  while (current && current !== ancestor) {
+    current = current.parent;
+    depth += 1;
+  }
+  return current === ancestor ? depth : 0;
+}
+
+function getNodeParentId(node) {
+  if (!node || !node.parent || typeof node.parent.id !== "string") {
+    return null;
+  }
+  return node.parent.id;
+}
+
+function toBBox(boundsLike) {
+  if (!boundsLike) {
+    return null;
+  }
+
+  const x = Number(boundsLike.x);
+  const y = Number(boundsLike.y);
+  const width = Number(boundsLike.width);
+  const height = Number(boundsLike.height);
+
+  if (![x, y, width, height].every((value) => Number.isFinite(value))) {
+    return null;
+  }
+
+  return { x, y, width, height };
+}
+
+function readNodeBounds(node) {
+  try {
+    if ("absoluteRenderBounds" in node && node.absoluteRenderBounds) {
+      const bbox = toBBox(node.absoluteRenderBounds);
+      if (bbox) {
+        return { bbox, issues: [] };
+      }
+    }
+
+    if ("absoluteBoundingBox" in node && node.absoluteBoundingBox) {
+      const bbox = toBBox(node.absoluteBoundingBox);
+      if (bbox) {
+        return { bbox, issues: [] };
+      }
+    }
+
+    return { bbox: null, issues: [] };
+  } catch (error) {
+    return {
+      bbox: null,
+      issues: ["Failed to read bounds: " + (error && error.message ? error.message : String(error))]
+    };
+  }
+}
+
+function createRootContext(root) {
+  const pageNode = getPageNode(root);
+  const pageName = pageNode ? pageNode.name : figma.currentPage.name;
+  const pageSegment = pageNode ? sanitizeSegment(pageNode.name || pageNode.type) : null;
+
+  const screenRootNode = getScreenRootNode(root, pageNode) || root;
+  const screenRootId = screenRootNode && typeof screenRootNode.id === "string" ? screenRootNode.id : root.id;
+  const screenFolder = sanitizeSegment(
+    (screenRootNode && (screenRootNode.name || screenRootNode.type)) || SCREEN_FOLDER_FALLBACK
+  );
+
+  return {
+    pageName,
+    pageSegment,
+    screenRootId,
+    screenFolder,
+    screenRootNode,
+    depth: distanceFromAncestor(root, screenRootNode)
+  };
+}
+
+function registerScreen(screenMap, context) {
+  const key = `${context.pageName}::${context.screenRootId}`;
+  if (screenMap.has(key)) {
+    return;
+  }
+
+  const boundsResult = readNodeBounds(context.screenRootNode);
+  const screenEntry = {
+    pageName: context.pageName,
+    screenRootId: context.screenRootId,
+    screenFolder: context.screenFolder,
+    bbox: boundsResult.bbox
+  };
+  if (boundsResult.issues.length > 0) {
+    screenEntry.issues = boundsResult.issues.slice();
+  }
+
+  screenMap.set(key, screenEntry);
 }
 
 function hasRenderableChildren(node, settings) {
@@ -70,30 +203,44 @@ function shouldVisitNode(node, settings) {
   return true;
 }
 
-function collectTargetsFromNode(node, parentPath, settings, output) {
+function collectTargetsFromNode(node, parentPath, settings, context, output, zIndexCounter) {
   if (!shouldVisitNode(node, settings)) {
     return;
   }
 
   const segment = sanitizeSegment(node.name || node.type);
   const currentPath = parentPath.concat(segment);
+  const childContext = Object.assign({}, context, { depth: context.depth + 1 });
 
   if (isExportableNode(node)) {
-    const includeNode = !settings.onlyLeafNodes || !hasRenderableChildren(node, settings);
+    const isLeaf = !hasRenderableChildren(node, settings);
+    const includeNode = !settings.onlyLeafNodes || isLeaf;
     if (includeNode) {
+      const boundsResult = readNodeBounds(node);
       output.push({
         node,
         nodeId: node.id,
         nodeType: node.type,
         nodeName: node.name || node.type,
+        parentId: getNodeParentId(node),
+        pageName: context.pageName,
+        pageSegment: context.pageSegment,
+        screenRootId: context.screenRootId,
+        screenFolder: context.screenFolder,
+        isLeaf,
+        depth: context.depth,
+        zIndex: zIndexCounter.value,
+        bbox: boundsResult.bbox,
+        issues: boundsResult.issues,
         pathSegments: currentPath
       });
+      zIndexCounter.value += 1;
     }
   }
 
   if (isContainerNode(node)) {
     for (const child of node.children) {
-      collectTargetsFromNode(child, currentPath, settings, output);
+      collectTargetsFromNode(child, currentPath, settings, childContext, output, zIndexCounter);
     }
   }
 }
@@ -241,18 +388,32 @@ function toPath(entry) {
   return `${entry.pathSegments.join("/")}/${safeName}__${safeId}.svg`;
 }
 
+function toRelativePath(zipPath, pageSegment) {
+  if (!pageSegment) {
+    return zipPath;
+  }
+  const prefix = `${pageSegment}/`;
+  return zipPath.startsWith(prefix) ? zipPath.slice(prefix.length) : zipPath;
+}
+
 async function exportToZip(settings) {
   const roots = getRootNodes(settings);
   const targets = [];
+  const screens = new Map();
+  const zIndexCounter = { value: 0 };
 
   for (const root of roots) {
     const rootSegment = sanitizeSegment(root.name || root.type);
     if (root.type === "PAGE") {
       for (const child of root.children) {
-        collectTargetsFromNode(child, [rootSegment], settings, targets);
+        const context = createRootContext(child);
+        registerScreen(screens, context);
+        collectTargetsFromNode(child, [rootSegment], settings, context, targets, zIndexCounter);
       }
     } else {
-      collectTargetsFromNode(root, [rootSegment], settings, targets);
+      const context = createRootContext(root);
+      registerScreen(screens, context);
+      collectTargetsFromNode(root, [rootSegment], settings, context, targets, zIndexCounter);
     }
   }
 
@@ -267,6 +428,7 @@ async function exportToZip(settings) {
 
   const files = [];
   const failures = [];
+  const layoutEntries = [];
   const exportSettings = {
     format: "SVG",
     svgOutlineText: settings.outlineText,
@@ -279,6 +441,27 @@ async function exportToZip(settings) {
     try {
       const data = await target.node.exportAsync(exportSettings);
       files.push({ path: filePath, data });
+
+      const entry = {
+        nodeId: target.nodeId,
+        parentId: target.parentId,
+        nodeName: target.nodeName,
+        nodeType: target.nodeType,
+        pageName: target.pageName,
+        screenRootId: target.screenRootId,
+        screenFolder: target.screenFolder,
+        isLeaf: target.isLeaf,
+        depth: target.depth,
+        zIndex: target.zIndex,
+        bbox: target.bbox,
+        zipPath: filePath,
+        relativePath: toRelativePath(filePath, target.pageSegment)
+      };
+      if (target.issues && target.issues.length > 0) {
+        entry.issues = target.issues.slice();
+      }
+
+      layoutEntries.push(entry);
     } catch (error) {
       failures.push({
         id: target.nodeId,
@@ -311,6 +494,15 @@ async function exportToZip(settings) {
     failedCount: failures.length
   };
 
+  const nodeLayout = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    fileName: figma.root.name,
+    scope: settings.scope,
+    entries: layoutEntries,
+    screens: Array.from(screens.values())
+  };
+
   files.push({
     path: "_manifest.json",
     data: utf8Encode(JSON.stringify(manifest, null, 2))
@@ -318,6 +510,10 @@ async function exportToZip(settings) {
   files.push({
     path: "_failed.json",
     data: utf8Encode(JSON.stringify(failures, null, 2))
+  });
+  files.push({
+    path: "_node_layout.json",
+    data: utf8Encode(JSON.stringify(nodeLayout, null, 2))
   });
 
   figma.ui.postMessage({
@@ -335,9 +531,11 @@ async function exportToZip(settings) {
     type: "done",
     fileName: `figma-svg-export-${stamp}.zip`,
     zipBytes,
-    exportedCount: files.length - 2,
+    exportedCount: files.length - 3,
     failedCount: failures.length,
-    totalTargets: targets.length
+    totalTargets: targets.length,
+    layoutMetadataPath: "_node_layout.json",
+    layoutEntryCount: layoutEntries.length
   });
 }
 

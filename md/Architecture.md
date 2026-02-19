@@ -1,160 +1,78 @@
-# System Architecture: Just One Tap
+# Architecture - Just One Tap (J_O_T)
 
-> **Pattern:** MCV (Manager-Controller-View)  
-> **Updated:** 2026-02-19 (2차)
+Updated: 2026-02-19 (3차)
 
----
+## 1) 전체 구성
+1. Unity Runtime (게임 본체)
+2. Figma Export Plugin (SVG + 메타 추출)
+3. SVG Inspector (Unity 외부 검수 앱)
 
-## 1. Core Loop (Runtime)
+## 2) Unity Runtime (MCV)
+1. Manager(Core)
+   - `GameManager`: 상태 전환/라이프사이클
+   - `RoutineManager`: 1일 1탭 규칙, 포인트/스트릭
+   - `DataManager`: 로컬 저장 + 원격 동기화 진입점
+   - `LocalizationManager`: 다국어 조회
+   - `AuthManager`: 인증 상태
+2. View(UI)
+   - `UI_Main`, `UI_Onboarding`, `UI_Settings`
+3. Controller 성격
+   - UI 입력 -> Routine/Auth/Data 호출 -> 결과 렌더
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI as UI_Main (View)
-    participant Core as RoutineManager (Controller)
-    participant Loc as LocalizationManager
-    participant Data as DataManager (Model)
+## 3) Figma Export Plugin 파이프라인
+경로: `figma-plugin/export-all-svg/`
 
-    User->>UI: Big Button Tap
-    UI->>Core: TryRoutineAction()
-    Core->>Core: IsTodayDone?
-    alt Already done
-        Core->>Loc: GetString("msg_already_done")
-        Loc-->>UI: Localized message
-        UI-->>User: Show toast
-    else Available
-        Core->>UI: Request ad flow
-        User-->>Core: Ad completed
-        Core->>Data: Save points/streak
-        Data->>Cloud: Sync Firestore
-        Core->>Loc: GetString("msg_success")
-        Loc-->>UI: Localized reward message
-        UI-->>User: Reward FX
-    end
-```
+1. Scope 선택 (`selection`, `current-page`, `all-pages`)
+2. 노드 트리 순회/필터
+   - `includeHidden`, `includeLocked`, `onlyLeafNodes`
+3. SVG export
+   - 파일명 규칙: `<NodeName>__<NodeId>.svg`
+4. ZIP 묶음 생성
+5. 메타 파일 출력
+   - `_manifest.json` (기존 유지)
+   - `_failed.json` (기존 유지)
+   - `_node_layout.json` (신규)
 
----
+### `_node_layout.json` 핵심 필드
+1. 최상위
+   - `version`, `generatedAt`, `fileName`, `scope`
+2. `entries[]`
+   - `nodeId`, `parentId`, `nodeName`, `nodeType`
+   - `pageName`, `screenRootId`, `screenFolder`
+   - `isLeaf`, `depth`, `zIndex`
+   - `bbox` (`absoluteRenderBounds` 우선, fallback `absoluteBoundingBox`, 없으면 `null`)
+   - `zipPath`, `relativePath`
+3. `screens[]`
+   - `pageName`, `screenRootId`, `screenFolder`, `bbox`
 
-## 2. Runtime Components
+## 4) SVG Inspector 파이프라인
+경로: `svg-inspector/`
 
-### 2.1 Managers (Singleton)
-- `GameManager`: 앱 상태 및 씬 전환 컨텍스트.
-- `RoutineManager`: 1일 1회 로직, streak/point 규칙.
-- `DataManager`: 로컬 저장 + Firestore 동기화.
-- `LocalizationManager`: 언어 선택 및 문자열 조회.
-- `AuthManager`: 사용자 식별/로그인 상태.
-
-### 2.2 Views
-- `UI_Onboarding`: 인트로, 목표 설정.
-- `UI_Main`: 상단 상태, 중앙 버튼, 하단 네비.
-- `UI_Settings`: 언어/알림/사운드.
-
----
-
-## 3. Editor and Tooling Components
-
-- `Assets/Editor/ProjectSetupTool.cs`
-  - 폴더/기본 스크립트 자동 생성.
-  - Player Settings 자동 적용.
-- `Assets/Editor/PackageInstaller.cs`
-  - 필수 패키지 설치 요청.
-- `figma-plugin/export-all-svg/*`
-  - Figma 전체 트리 SVG 추출 플러그인.
-  - ZIP + `_manifest.json` + `_failed.json` 생성.
-- `svg-inspector/*`
-  - Unity 외부 검수 앱.
-  - 화면(root SVG) 검수 + 상태 기록 + Unity 매니페스트 출력.
-
----
-
-## 4. Figma Export Pipeline
-
-1. Figma 플러그인 실행 (`Export All Nodes To SVG (Full Tree)`).
-2. Scope 선택 (`selection`, `current-page`, `all-pages`).
-3. 노드 재귀 수집 후 `exportAsync({ format: "SVG" })`.
-4. 트리 구조 유지 ZIP 생성.
-5. `_manifest.json`/`_failed.json`로 결과 검증.
-
-최근 검증:
-- `totalTargets`: 4104
-- `exportedCount`: 3302
-- `failedCount`: 802
-- 주요 실패 원인: 보이는 레이어 없음(`This node may not have any visible layers.`)
-
----
-
-## 5. SVG Inspection Pipeline (External Web App)
-
-1. `svg-inspector` 실행 후 추출 루트(`Page 1/`) 선택.
-2. 루트 하위 1-depth 폴더를 화면(Screen)으로 판정.
-3. root SVG 규칙 적용:
+1. 사용자 폴더 선택 (`showDirectoryPicker`, fallback `webkitdirectory`)
+2. Screen 판정
+   - 선택 루트 하위 1-depth 디렉터리
+3. Root SVG 판정
    - 우선: `<screenName>__*.svg`
    - fallback: 화면 폴더 직속 첫 SVG
-4. 화면별 검수 상태(`pending/approved/hold`) + 메모 기록.
-5. `unity-inspection-manifest.json`으로 내보내 Unity 후속 자동화 입력으로 사용.
+4. 검수 상태 관리
+   - `pending`, `approved`, `hold` + `reviewNote`
+5. 산출
+   - `unity-inspection-manifest.json`
+   - CSV (옵션)
 
-예외 처리:
-- root SVG 누락/빈 폴더/파싱 실패는 `issues`로 기록하고 앱은 중단하지 않음.
+## 5) 데이터 인터페이스
 
----
+### 5.1 Export -> Inspector
+1. SVG 파일 트리
+2. `_node_layout.json`
+3. `_manifest.json`, `_failed.json` (검증용)
 
-## 6. Data Schemas
+### 5.2 Inspector -> Unity
+1. `unity-inspection-manifest.json`
+2. `screens[]` 상태/메모 기반 후속 자동화 입력
 
-### 6.1 Runtime Save Schema (Game)
+## 6) 현재 결정 사항
+1. 1차는 플러그인 메타 확장까지 완료
+2. Inspector 2패널 비교(루트 SVG vs 조합 SVG)는 다음 단계
+3. Unity 씬 자동 배치는 후속 단계에서 진행
 
-```json
-{
-  "uid": "user_global_001",
-  "identity": {
-    "nickname": "Player1",
-    "country": "US",
-    "language": "en"
-  },
-  "settings": {
-    "dailyTarget": 5.0,
-    "currencySymbol": "$"
-  },
-  "routine": {
-    "currentPoints": 15.0,
-    "currentStreak": 3,
-    "lastActionDate": "2026-02-19"
-  }
-}
-```
-
-### 6.2 Unity Inspection Manifest Schema
-
-```json
-{
-  "version": 1,
-  "generatedAt": "2026-02-19T00:00:00.000Z",
-  "sourceRoot": "Page 1",
-  "summary": {
-    "screenTotal": 0,
-    "approved": 0,
-    "hold": 0,
-    "pending": 0,
-    "svgTotal": 0
-  },
-  "screens": [
-    {
-      "id": "13-3321",
-      "name": "Profile",
-      "folderPath": "Profile",
-      "rootSvgPath": "Profile/Profile__13-3321.svg",
-      "svgCount": 0,
-      "reviewStatus": "pending",
-      "reviewNote": "",
-      "issues": []
-    }
-  ],
-  "files": [
-    {
-      "screenId": "13-3321",
-      "relativePath": "Profile/Profile__13-3321.svg",
-      "nodeId": "13:3321",
-      "nodeName": "Profile"
-    }
-  ]
-}
-```

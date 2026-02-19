@@ -6,6 +6,7 @@ This Figma plugin recursively walks the selected scope and exports every exporta
 - Each file name includes node id: `<NodeName>__<NodeId>.svg`.
 - Output is downloaded as one ZIP.
 - ZIP includes `_manifest.json` and `_failed.json`.
+- ZIP also includes `_node_layout.json` for inspector-side composition metadata.
 
 ## Files
 - `manifest.json`
@@ -36,3 +37,29 @@ This Figma plugin recursively walks the selected scope and exports every exporta
 - Running this on very large files can take time and memory.
 - Some node types may fail to export; check `_failed.json`.
 - If you are in view-only mode and plugins are blocked by workspace policy, this plugin cannot run in that file.
+
+## Output Files
+- `PageName/.../*.svg`: exported SVG assets (same naming/path rule as before)
+- `_manifest.json`: export summary (backward compatible)
+- `_failed.json`: failed export list (backward compatible)
+- `_node_layout.json`: node layout metadata for composition/inspection
+
+### `_node_layout.json` summary
+- `version`, `generatedAt`, `fileName`, `scope`
+- `entries[]` fields:
+  - `nodeId`, `parentId`, `nodeName`, `nodeType`
+  - `pageName`, `screenRootId`, `screenFolder`
+  - `isLeaf`, `depth`, `zIndex`
+  - `bbox` (`absoluteRenderBounds` first, fallback `absoluteBoundingBox`, else `null`)
+  - `zipPath` (actual path inside ZIP), `relativePath` (page folder removed when possible)
+- `screens[]`: per-screen root metadata (`pageName`, `screenRootId`, `screenFolder`, `bbox`)
+
+## Re-export Workflow (Recommended)
+1. Delete previous outputs:
+   - `Page 1/` (or other extracted page folders)
+   - `_manifest.json`
+   - `_failed.json`
+   - `figma-svg-export-*.zip`
+2. Re-run plugin with `all-pages` scope.
+3. For inspector composition accuracy, enable `Only leaf render nodes`.
+4. Verify ZIP contains `_node_layout.json` together with existing files.

@@ -327,6 +327,11 @@
             ", Total targets: " +
             msg.totalTargets
         );
+        if (msg.layoutMetadataPath) {
+          const entryInfo =
+            typeof msg.layoutEntryCount === "number" ? " (" + msg.layoutEntryCount + " entries)" : "";
+          appendLine("Layout metadata: " + msg.layoutMetadataPath + entryInfo);
+        }
         setRunning(false);
         return;
       }

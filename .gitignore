@@ -102,7 +102,9 @@ cloudbuild/
 /Page 1/
 /_manifest.json
 /_failed.json
+/_node_layout.json
 /figma-svg-export-*.zip
+/figma-svg-export-*/
 /components*.zip
 /J_O_T_Project_layers/
 /md/error_log.md
